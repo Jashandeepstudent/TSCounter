@@ -1,0 +1,15 @@
+{
+  "home": {
+    "title": "Welcome to MNDP School",
+    "desc": "Where They Happy very much"
+  },
+  "about": {
+    "title": "About Our School.",
+    "desc": "Founded in 2005, Montessori School has grown into a vibrant community of learners"
+  },
+  "galleryImages": [
+    "/uploads/images/1750951343798-dr.PNG"
+  ],
+  "galleryVideos": [],
+  "backgroundImage": "/uploads/background.jpg"
+}
