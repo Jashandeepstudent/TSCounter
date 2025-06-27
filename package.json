@@ -1,18 +1,28 @@
 {
-  "name": "my-school-backend",
+  "name": "my-school-live",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jashandeepstudent/my-school-live.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "cloudinary": "^1.41.3",
-    "express": "^5.1.0",
-    "multer-storage-cloudinary": "^4.0.0"
-  }
+  "bugs": {
+    "url": "https://github.com/Jashandeepstudent/my-school-live/issues"
+  },
+  "homepage": "https://github.com/Jashandeepstudent/my-school-live#readme",
+  "description": ""
 }
