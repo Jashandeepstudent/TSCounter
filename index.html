@@ -1,532 +1,300 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Smart Hire — Elegant Dark</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#071018;
-    --panel:#0d1316;
-    --muted:#9fb3b9;
-    --accent-1: #2ee6a5;
-    --accent-2: #1db18a;
-    --danger:#ff6b6b;
-    --glass: rgba(255,255,255,0.03);
-    --radius:14px;
-    --card-shadow: 0 8px 30px rgba(2,6,8,0.7);
-  }
-  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
-  html,body{height:100%;margin:0;background:linear-gradient(180deg,#041018 0%, #071219 100%);color:#eaf6f3}
-  header{height:68px;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);border-bottom:1px solid rgba(255,255,255,0.02);backdrop-filter: blur(6px)}
-  .brand{display:flex;align-items:center;gap:12px}
-  .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#05231b}
-  h1{margin:0;font-size:18px;letter-spacing:0.2px}
-  .top-right{display:flex;align-items:center;gap:10px}
-  .icon-btn{background:transparent;border:none;color:inherit;cursor:pointer;padding:8px;border-radius:10px;font-size:18px;display:inline-flex;align-items:center;gap:8px}
-  .pill{background:var(--glass);padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.02);font-weight:600;color:var(--muted)}
-
-  main{padding:28px;display:flex;flex-direction:column;gap:20px;min-height:calc(100vh - 88px)}
-
-  /* Landing */
-  .landing{display:flex;align-items:center;justify-content:center;height:62vh}
-  .landing-card{width:820px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:18px;padding:34px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--card-shadow);border:1px solid rgba(255,255,255,0.03)}
-  .landing-left{max-width:54%}
-  .landing-title{font-size:28px;margin:0 0 6px 0;font-weight:800}
-  .landing-sub{color:var(--muted);margin-bottom:18px}
-  .landing-actions{display:flex;gap:12px}
-  .cta{padding:14px 22px;border-radius:12px;font-weight:700;cursor:pointer;border:0;box-shadow:0 8px 24px rgba(0,0,0,0.6);transition:transform .18s ease,box-shadow .18s ease}
-  .cta.view{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:#05231b}
-  .cta.view:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(17,140,103,0.14)}
-  .cta.emg{background:linear-gradient(90deg,#ff7b7b,#ff5a5a);color:white}
-  .cta.emg:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(255,80,80,0.12)}
-  .landing-right{width:40%;display:flex;align-items:center;justify-content:center}
-  .hero-card{width:220px;height:220px;border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,0.03)}
-  .hero-icon{width:88px;height:88px;border-radius:14px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#05231b;font-size:28px}
-
-  /* Pages */
-  .page{display:none}
-  .container-wide{display:flex;gap:20px;align-items:flex-start}
-  .sidebar{width:320px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 6px 20px rgba(2,6,8,0.6)}
-  .search-row{display:flex;gap:8px;margin-bottom:12px}
-  .input{width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit}
-  .filters{display:flex;gap:8px;margin-bottom:10px}
-  .profile-list{display:flex;flex-direction:column;gap:12px;overflow:auto;max-height:62vh;padding-right:6px}
-  .profile-card{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border:1px solid rgba(255,255,255,0.02);transition:transform .16s ease,box-shadow .16s ease}
-  .profile-card:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(2,6,8,0.6)}
-  .avatar{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#071219;border:2px solid rgba(255,255,255,0.03)}
-  .meta{display:flex;flex-direction:column}
-  .name{font-weight:700}
-  .role{color:var(--muted);font-size:13px;margin-top:4px}
-  .view-btn{margin-left:auto;padding:8px 12px;border-radius:10px;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#05231b;font-weight:700;cursor:pointer;box-shadow:0 10px 30px rgba(17,140,103,0.12)}
-
-  /* Main details panel */
-  .details{flex:1;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,0.03);min-height:62vh;box-shadow:0 6px 20px rgba(2,6,8,0.6);overflow:auto}
-  .detail-top{display:flex;gap:18px;align-items:center}
-  .big-avatar{width:140px;height:140px;border-radius:18px;object-fit:cover;background:#071219;border:3px solid rgba(255,255,255,0.03)}
-  .detail-name{font-size:22px;font-weight:800}
-  .detail-sub{color:var(--muted);font-size:14px;margin-top:6px}
-  .stat-row{display:flex;gap:12px;margin-top:14px}
-  .stat{background:rgba(255,255,255,0.02);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.02);min-width:120px;text-align:center}
-  .achievements{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-
-  /* Comments and chat */
-  .comments{margin-top:14px;display:flex;flex-direction:column;gap:10px}
-  .comment{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-  .comment .who{font-weight:700}
-  .comment .txt{color:var(--muted);margin-top:6px}
-  .comment-actions{display:flex;flex-direction:column;gap:8px}
-
-  /* Notifications */
-  .tabs{display:flex;gap:8px;margin-bottom:12px}
-  .tab{padding:8px 12px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.02);cursor:pointer}
-  .tab.active{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:#05231b;border:none}
-
-  /* Modal */
-  .modal{position:fixed;left:0;right:0;top:0;bottom:0;background:linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.6));display:flex;align-items:center;justify-content:center;z-index:120}
-  .modal-card{width:680px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);padding:18px;border-radius:14px;border:1px solid rgba(255,255,255,0.03)}
-
-  /* Footer small */
-  .muted{color:var(--muted);font-size:13px}
-
-  @media (max-width:980px){ .landing-card{flex-direction:column;gap:18px;padding:22px;width:92vw} .landing-left,.landing-right{width:100%} .container-wide{flex-direction:column} .sidebar{width:100%} .details{min-height:unset} }
-</style>
-
-
-<!-- Firebase SDKs with Realtime Listeners -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, setDoc, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  // Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyDDdz_uW2OrBL6wDMT9KKC-I7gzSKQ43Ho",
-    authDomain: "diame-fe0d3.firebaseapp.com",
-    projectId: "diame-fe0d3",
-    storageBucket: "diame-fe0d3.firebasestorage.app",
-    messagingSenderId: "167849344317",
-    appId: "1:167849344317:web:ace08607ddf2e95ab91954",
-    measurementId: "G-ZQYZML32XW"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // Firestore helpers
-  async function load(collName){
-    const snapshot = await getDocs(collection(db, collName));
-    return snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-  }
-
-  async function save(collName, obj, id=null){
-    if(id){
-      await setDoc(doc(db, collName, id), obj);
-    } else {
-      await addDoc(collection(db, collName), obj);
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Uniorax — MySQL Connected</title>
+  <style>
+    :root{
+      --accent:#4f46e5; --bg:#0b0b0b; --card:#151515; --muted:#aab4c4; --line:#222;
     }
-  }
-
-  async function update(collName, id, obj){
-    await updateDoc(doc(db, collName, id), obj);
-  }
-
-  async function remove(collName, id){
-    await deleteDoc(doc(db, collName, id));
-  }
-
-  // Realtime listeners
-  function listenToCollection(collName, callback){
-    return onSnapshot(collection(db, collName), (snapshot)=>{
-      const docs = snapshot.docs.map(doc=>({id:doc.id, ...doc.data()}));
-      callback(docs);
-    });
-  }
-
-  // Overwrite old storage keys
-  const S_PROFILES = "profiles";
-  const S_MSGS = "messages";
-  const S_REQS = "requests";
-
-  window.db = db;
-  window.load = load;
-  window.save = save;
-  window.update = update;
-  window.remove = remove;
-  window.listenToCollection = listenToCollection;
-  window.S_PROFILES = S_PROFILES;
-  window.S_MSGS = S_MSGS;
-  window.S_REQS = S_REQS;
-
-  // Auto-realtime rendering for profiles, requests, and messages
-  listenToCollection(S_PROFILES, (docs)=>{
-    localStorage.setItem("cache_profiles", JSON.stringify(docs)); // cache for rendering
-    if(document.getElementById("profilesList")) renderProfiles();
-  });
-  listenToCollection(S_MSGS, (docs)=>{
-    localStorage.setItem("cache_msgs", JSON.stringify(docs));
-    updateNotifDot();
-  });
-  listenToCollection(S_REQS, (docs)=>{
-    localStorage.setItem("cache_reqs", JSON.stringify(docs));
-    updateNotifDot();
-  });
-</script>
-
-
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#e6eef8}
+    header{position:sticky;top:0;background:#0e0e0e;border-bottom:1px solid var(--line);z-index:10}
+    .bar{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+    .dots{font-size:22px;cursor:pointer}
+    .title{font-weight:700;letter-spacing:.3px}
+    .grow{flex:1}
+    .search{display:flex;align-items:center;background:#111;border:1px solid var(--line);border-radius:10px;padding:6px 10px;gap:8px}
+    .search input{background:transparent;border:none;outline:none;color:#e6eef8;width:220px}
+    .bell{position:relative;cursor:pointer;padding:8px;border-radius:10px;background:#111;border:1px solid var(--line)}
+    .pill{position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border-radius:999px;padding:2px 6px;font-size:11px}
+    .menu{position:absolute;left:12px;top:56px;background:#0f0f0f;border:1px solid var(--line);border-radius:14px;padding:10px;display:none;min-width:220px}
+    .menu a{display:block;color:#e6eef8;text-decoration:none;padding:8px;border-radius:8px}
+    .menu a:hover{background:#171717}
+    main{max-width:1100px;margin:24px auto;padding:0 16px;display:grid;grid-template-columns:1fr 320px;gap:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+    .profiles{display:flex;flex-direction:column;gap:12px}
+    .p-row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;background:#121212;border:1px solid var(--line);border-radius:14px;padding:10px}
+    .avatar{width:64px;height:64px;border-radius:12px;background:#0c0c0c;object-fit:cover}
+    .p-meta b{display:block;font-size:16px}
+    .muted{color:var(--muted);font-size:12px}
+    .btn{border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:600}
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.ghost{background:#181818;color:#e6eef8;border:1px solid var(--line)}
+    .right .card{position:sticky; top:84px}
+    .toolbar{display:flex;gap:8px;margin-bottom:10px}
+    .select{width:100%;padding:8px;border-radius:10px;border:1px solid var(--line);background:#0f0f0f;color:#e6eef8}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    dialog{border:none;border-radius:16px;padding:0;max-width:520px;width:96%}
+    .modal{background:#0f0f0f;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+    .modal header{position:static;background:#121212;border-bottom:1px solid var(--line)}
+    .modal .body{padding:16px}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+    .field input,.field select,.field textarea{background:#121212;border:1px solid var(--line);border-radius:10px;padding:10px;color:#e6eef8}
+    .chat-wrap{max-height:360px;overflow:auto;display:flex;flex-direction:column;gap:8px;background:#101010;border:1px solid var(--line);border-radius:12px;padding:10px}
+    .msg{max-width:72%;padding:10px;border-radius:12px}
+    .me{background:var(--accent);color:white;margin-left:auto}
+    .them{background:#1f1f1f;color:white;margin-right:auto}
+    .pilltab{display:flex;gap:8px;margin:8px 0}
+    .pilltab button{border:1px solid var(--line);background:#121212;color:#e6eef8;border-radius:999px;padding:6px 10px;cursor:pointer}
+    .pilltab button.active{background:var(--accent);color:#fff;border-color:transparent}
+    .note{font-size:12px;color:var(--muted)}
+  </style>
 </head>
 <body>
 <header>
-  <div class="brand">
-    <div class="logo">SH</div>
-    <div>
-      <h1>Smart Hire</h1>
-      <div class="muted" style="font-size:12px">Beautiful dark management UI</div>
+  <div class="bar">
+    <div class="dots" id="dots">⋮</div>
+    <div class="title">Uniorax</div>
+    <div class="grow"></div>
+    <div class="search">
+      🔎 <input id="q" placeholder="Search by name or ID">
+    </div>
+    <div class="bell" id="bell">
+      🔔 <span class="pill" id="notifCount" style="display:none">0</span>
     </div>
   </div>
-
-  <div class="top-right">
-    <button class="icon-btn" id="menuBtn" title="Menu">⋮</button>
-    <div style="width:8px"></div>
-    <button class="icon-btn" id="notifBtn" title="Notifications">🔔<span id="notifDot" style="display:none;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--danger);color:#200">●</span></button>
+  <div class="menu" id="menu">
+    <a href="#" id="createProfile">➕ Create Profile</a>
+    <a href="#" id="viewProfiles">👥 View Profiles</a>
   </div>
 </header>
 
 <main>
-  <!-- Landing / Hero -->
-  <section id="landingPage" class="page" style="display:block">
-    <div class="landing">
-      <div class="landing-card">
-        <div class="landing-left">
-          <div class="landing-title">Find trusted help, fast.</div>
-          <div class="landing-sub">Browse skilled profiles, send hire requests, chat and manage emergencies — all in one elegant dashboard.</div>
-          <div class="landing-actions">
-            <button class="cta view" onclick="goProfiles()">View Profiles</button>
-            <button class="cta emg" onclick="goEmergency()">Emergency Request</button>
-          </div>
-          <div style="margin-top:16px" class="muted">Tip: Click the ⋮ menu (top-left) to create a new profile.</div>
-        </div>
-        <div class="landing-right">
-          <div class="hero-card">
-            <div class="hero-icon">💼</div>
-            <div class="muted">Smart Hire</div>
-            <div class="pill" style="margin-top:6px">Dark • Fast • Local</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Profiles Page -->
-  <section id="profilesPage" class="page">
-    <div class="container-wide">
-      <div class="sidebar">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div class="muted">Profiles</div>
-          <div><button class="pill" onclick="openCreateModal()">+ Create</button></div>
-        </div>
-        <div class="search-row">
-          <input id="globalSearch" class="input" placeholder="Search by name or occupation">
-        </div>
-        <div class="filters">
-          <select id="filterSelect" class="input" style="width:46%"><option value="all">All</option><option value="fav">Favorites</option><option value="saved">Saved</option></select>
-          <button class="pill" onclick="renderProfiles()">Refresh</button>
-        </div>
-        <div class="profile-list" id="profilesList"></div>
-      </div>
-
-      <div class="details" id="rightPanel">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><strong style="font-size:18px">Welcome</strong><div class="muted">Select a profile from the left to view details</div></div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="pill" onclick="goNotifications()">Notifications</button>
-            <button class="pill" onclick="toLanding()">Home</button>
-          </div>
-        </div>
-        <div id="detailsContent" style="margin-top:18px"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Profile Detail Page (full screen) -->
-  <section id="profileDetailPage" class="page">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="muted"><button class="pill" onclick="backToProfiles()">⬅ Back</button></div>
-      <div><button class="pill" onclick="goNotifications()">Notifications</button></div>
-    </div>
-    <div class="details" id="detailContent"></div>
-  </section>
-
-  <!-- Notifications Page -->
-  <section id="notificationsPage" class="page">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="muted"><button class="pill" onclick="toLanding()">⬅ Home</button></div>
-      <div class="muted"><strong>Notifications</strong></div>
-    </div>
-    <div class="card" style="padding:12px">
-      <div class="tabs">
-        <div class="tab active" id="tabReq" onclick="renderNotif('requests')">Hire Requests</div>
-        <div class="tab" id="tabMsg" onclick="renderNotif('messages')">Messages</div>
-      </div>
-      <div id="notifArea"></div>
-    </div>
-  </section>
-
-  <!-- Emergency Page -->
-  <section id="emergencyPage" class="page">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="muted"><button class="pill" onclick="toLanding()">⬅ Home</button></div>
-      <div class="muted"><strong>Emergency Request</strong></div>
-    </div>
+  <section class="left">
     <div class="card">
-      <div class="muted">Fill emergency details — this creates a prioritized request in Notifications.</div>
-      <div style="margin-top:10px;display:grid;gap:10px;max-width:640px">
-        <input id="emName" class="input" placeholder="Your name">
-        <input id="emContact" class="input" placeholder="Contact number">
-        <textarea id="emDesc" class="input" placeholder="Describe emergency..." style="min-height:140px"></textarea>
-        <div style="display:flex;gap:8px">
-          <button class="cta emg" onclick="sendEmergency()">Send Emergency</button>
-          <button class="pill" onclick="toLanding()">Cancel</button>
-        </div>
+      <div class="toolbar">
+        <button class="btn primary" id="btnNew">+ New Profile</button>
+        <select class="select" id="category">
+          <option value="">All categories</option>
+          <option>Plumber</option>
+          <option>Electrician</option>
+          <option>Carpenter</option>
+          <option>Painter</option>
+        </select>
       </div>
+      <div class="profiles" id="profiles"></div>
+      <div class="note" id="emptyState" style="display:none">No profiles yet. Click “+ New Profile”.</div>
     </div>
   </section>
+
+  <aside class="right">
+    <div class="card">
+      <h3>Notifications</h3>
+      <div class="pilltab">
+        <button id="tabUnread" class="active">Unread</button>
+        <button id="tabRead">Read</button>
+      </div>
+      <div id="notifUnread"></div>
+      <div id="notifRead" style="display:none"></div>
+    </div>
+  </aside>
 </main>
 
-<!-- Left dropdown menu (Create Profile) -->
-<div id="leftMenu" style="display:none;position:fixed;left:18px;top:78px;z-index:90">
-  <div style="background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);box-shadow:var(--card-shadow)">
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="pill" onclick="openCreateModal(); toggleMenu()">➕ Create Profile</button>
-      <button class="pill" onclick="alert('Settings coming soon'); toggleMenu()">⚙ Settings</button>
+<!-- Profile Modal -->
+<dialog id="profileDlg">
+  <div class="modal">
+    <header class="bar"><div class="title">Create / Edit Profile</div></header>
+    <div class="body">
+      <div class="grid2">
+        <div class="field"><label>Name</label><input id="f_name"></div>
+        <div class="field"><label>Age</label><input id="f_age" type="number" min="10"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Skill</label>
+          <select id="f_skill" class="select">
+            <option>Plumber</option><option>Electrician</option><option>Carpenter</option><option>Painter</option>
+          </select>
+        </div>
+        <div class="field"><label>Contact</label><input id="f_contact" placeholder="Phone or email"></div>
+      </div>
+      <div class="field"><label>Address</label><input id="f_address"></div>
+      <div class="field"><label>Avatar URL (optional)</label><input id="f_avatar" placeholder="https://..."></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+        <button class="btn ghost" id="cancelProfile">Cancel</button>
+        <button class="btn primary" id="saveProfile">Save</button>
+      </div>
     </div>
   </div>
-</div>
+</dialog>
 
-<!-- Modal root -->
-<div id="modalRoot" style="display:none"></div>
+<!-- Chat Modal -->
+<dialog id="chatDlg">
+  <div class="modal">
+    <header class="bar"><div class="title" id="chatTitle">Chat</div></header>
+    <div class="body">
+      <div class="chat-wrap" id="chatWrap"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input id="chatText" placeholder="Type a message…" style="flex:1" />
+        <button class="btn primary" id="sendMsg">Send</button>
+      </div>
+    </div>
+  </div>
+</dialog>
 
 <script>
-/* Storage keys */
-const S_PROFILES = 'sh_profiles_designed';
-const S_MSGS = 'sh_msgs_designed';
-const S_REQS = 'sh_reqs_designed';
+const API = "http://localhost:3000/api";
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
 
-/* Demo seed */
-if(!localStorage.getItem(S_PROFILES)){
-  const seed = [
-    {id:uid(), name:'Aman Kumar', occupation:'Electrician', contact:'9876543210', address:'Jammu', avatar:'', rating_sum:12, num_votes:3, hire_count:3, achievements:[], equipped:null, comments:[{id:uid(),user:'Ria',text:'Great work!',likes:1}], favorite:false, saved:false},
-    {id:uid(), name:'Riya Sharma', occupation:'Tutor', contact:'9123456780', address:'Srinagar', avatar:'', rating_sum:8, num_votes:2, hire_count:1, achievements:[], equipped:null, comments:[], favorite:true, saved:true}
-  ];
-  localStorage.setItem(S_PROFILES, JSON.stringify(seed));
+// UI toggles
+$("#dots").onclick = ()=> $("#menu").style.display = $("#menu").style.display === "block" ? "none" : "block";
+$("#btnNew").onclick = ()=> openProfileForm();
+$("#createProfile").onclick = (e)=>{e.preventDefault(); $("#menu").style.display="none"; openProfileForm();};
+$("#viewProfiles").onclick = (e)=>{e.preventDefault(); $("#menu").style.display="none"; loadProfiles();};
+$("#tabUnread").onclick = ()=>{ $("#tabUnread").classList.add("active"); $("#tabRead").classList.remove("active"); $("#notifUnread").style.display="block"; $("#notifRead").style.display="none";};
+$("#tabRead").onclick = ()=>{ $("#tabRead").classList.add("active"); $("#tabUnread").classList.remove("active"); $("#notifUnread").style.display="none"; $("#notifRead").style.display="block";};
+
+// Globals
+let PROFILES = [];
+const ME = { uid: "me", name: "You" }; // simple local identity
+
+function genUID(){ return Math.floor(10000 + Math.random()*90000).toString(); }
+
+// Fetch helpers
+async function apiGet(path){
+  const res = await fetch(API + path);
+  if(!res.ok) throw new Error(await res.text());
+  return res.json();
 }
-
-/* Menu behavior */
-function toggleMenu(){ const el=document.getElementById('leftMenu'); el.style.display = el.style.display==='block' ? 'none' : 'block'; }
-document.getElementById('menuBtn').addEventListener('click', ()=>toggleMenu());
-document.addEventListener('click', (e)=>{ const m=document.getElementById('leftMenu'); if(!document.getElementById('menuBtn').contains(e.target) && !m.contains(e.target)){ m.style.display='none'; } });
-
-/* Notifications button */
-document.getElementById('notifBtn').addEventListener('click', ()=>{ goNotifications(); })
-
-/* Navigation */
-function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.style.display='none'); document.getElementById(id).style.display='block'; updateNotifDot(); window.scrollTo(0,0); }
-function goProfiles(){ showPage('profilesPage'); renderProfiles(); }
-function goEmergency(){ showPage('emergencyPage'); }
-function toLanding(){ showPage('landingPage'); }
-function backToProfiles(){ showPage('profilesPage'); renderProfiles(); }
-function goNotifications(){ showPage('notificationsPage'); renderNotif('requests'); }
-
-/* Render profile cards */
-function renderProfiles(){
-  const list = document.getElementById('profilesList'); list.innerHTML='';
-  const q = (document.getElementById('globalSearch').value||'').toLowerCase();
-  const filter = document.getElementById('filterSelect').value;
-  const profiles = load(S_PROFILES);
-  const filtered = profiles.filter(p=>{
-    if(filter==='fav' && !p.favorite) return false;
-    if(filter==='saved' && !p.saved) return false;
-    if(q && !((p.name||'').toLowerCase().includes(q) || (p.occupation||'').toLowerCase().includes(q))) return false;
-    return true;
+async function apiPost(path, body){
+  const res = await fetch(API + path, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(body)
   });
-  if(filtered.length===0){
-    list.innerHTML = '<div class="muted">No profiles found. Create one using the menu or the + Create button.</div>'; updateNotifDot(); return;
-  }
-  filtered.forEach(p=>{
-    const card = document.createElement('div'); card.className='profile-card';
-    const av = document.createElement('img'); av.className='avatar'; av.src = p.avatar || placeholder(p.name,120);
-    const meta = document.createElement('div'); meta.className='meta'; meta.innerHTML = `<div class="name">${escapeHtml(p.name)}</div><div class="role">${escapeHtml(p.occupation)} • ${escapeHtml(p.address||'')}</div>`;
-    const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='12px'; left.appendChild(av); left.appendChild(meta);
-    const btn = document.createElement('button'); btn.className='view-btn'; btn.textContent='View Profile'; btn.onclick = ()=>openProfileDetail(p.id);
-    card.appendChild(left); card.appendChild(btn);
-    list.appendChild(card);
-  });
-  updateNotifDot();
+  if(!res.ok) throw new Error(await res.text());
+  return res.json().catch(()=> ({})); // some endpoints return empty object
 }
 
-/* Profile detail screen */
-function openProfileDetail(id){
-  const profiles = load(S_PROFILES); const p = profiles.find(x=>x.id===id); if(!p) return;
-  showPage('profileDetailPage');
-  const ctx = document.getElementById('detailContent'); ctx.innerHTML='';
-  const top = document.createElement('div'); top.className='detail-top';
-  const av = document.createElement('img'); av.className='big-avatar'; av.src = p.avatar || placeholder(p.name,240);
-  const info = document.createElement('div'); info.style.flex='1';
-  info.innerHTML = `<div class="detail-name">${escapeHtml(p.name)}</div><div class="detail-sub">${escapeHtml(p.occupation)} • ${escapeHtml(p.address||'')}</div><div class="muted" style="margin-top:6px">Contact: ${escapeHtml(p.contact||'N/A')}</div>`;
-  const actions = document.createElement('div'); actions.className='detail-actions';
-  const hireBtn = document.createElement('button'); hireBtn.className='cta view'; hireBtn.style.padding='10px 16px'; hireBtn.textContent='Hire'; hireBtn.onclick = ()=>{ sendHireRequest(p.id); };
-  const chatBtn = document.createElement('button'); chatBtn.className='pill'; chatBtn.textContent='Chat'; chatBtn.onclick = ()=>{ openChat(p.id); };
-  const favBtn = document.createElement('button'); favBtn.className='pill'; favBtn.textContent = p.favorite? 'Unfavorite' : 'Favorite'; favBtn.onclick = ()=>{ p.favorite=!p.favorite; save(S_PROFILES, load(S_PROFILES)); renderProfiles(); openProfileDetail(p.id); };
-  actions.appendChild(hireBtn); actions.appendChild(chatBtn); actions.appendChild(favBtn);
-  info.appendChild(actions);
-  top.appendChild(av); top.appendChild(info);
-  ctx.appendChild(top);
-
-  // stats
-  const stats = document.createElement('div'); stats.className='stat-row';
-  const avg = p.num_votes ? (p.rating_sum / p.num_votes).toFixed(1) : '0.0';
-  stats.innerHTML = `<div class="stat"><div class="muted">Rating</div><div style="font-weight:800;font-size:18px">${avg} / 5</div></div><div class="stat"><div class="muted">Hire Count</div><div style="font-weight:800;font-size:18px">${p.hire_count||0}</div></div><div class="stat"><div class="muted">Comments</div><div style="font-weight:800;font-size:18px">${(p.comments||[]).length}</div></div>`;
-  ctx.appendChild(stats);
-
-  // achievements
-  const achWrap = document.createElement('div'); achWrap.className='achievements'; achWrap.style.marginTop='12px';
-  const achCard = document.createElement('div'); achCard.className='card'; achCard.innerHTML = '<strong>Achievements</strong>';
-  const achArea = document.createElement('div'); achArea.style.marginTop='8px'; achCard.appendChild(achArea);
-  ctx.appendChild(achCard);
-  renderAchievementsFor(p, achArea);
-
-  // comments
-  const commCard = document.createElement('div'); commCard.className='card'; commCard.style.marginTop='12px';
-  commCard.innerHTML = `<strong>Comments</strong><div id="commentsArea" style="margin-top:10px"></div>
-    <div style="margin-top:12px;display:flex;gap:8px"><input id="newComment" class="input" placeholder="Write a comment..."><button class="pill" id="addCommentBtn">Add</button></div>`;
-  ctx.appendChild(commCard);
-  document.getElementById('addCommentBtn').onclick = ()=>{ const v=document.getElementById('newComment').value.trim(); if(!v) return alert('Write something'); p.comments = p.comments||[]; p.comments.push({id:uid(),user:'You',text:v,likes:0}); save(S_PROFILES, load(S_PROFILES)); document.getElementById('newComment').value=''; renderCommentsFor(p); renderProfiles(); };
-  renderCommentsFor(p);
+// Load & render profiles
+async function loadProfiles(){
+  const q = $("#q").value.trim().toLowerCase();
+  const cat = $("#category").value;
+  const rows = await apiGet("/profiles");
+  PROFILES = rows;
+  let list = rows;
+  if (cat) list = list.filter(p => (p.skill||"").toLowerCase() === cat.toLowerCase());
+  if (q) list = list.filter(p => (p.name||"").toLowerCase().includes(q) || (p.uid||"").toLowerCase().includes(q));
+  renderProfiles(list);
 }
 
-/* render achievements for a profile into target element */
-const ACH = [[1,'Starter'],[5,'Helper'],[10,'Experienced'],[20,'Pro'],[50,'Expert'],[100,'Master']];
-function renderAchievementsFor(p, targetEl){
-  targetEl.innerHTML='';
-  (p.achievements||[]).forEach(a=>{
-    const pill = document.createElement('div'); pill.className='ach-pill'; pill.textContent = a + (p.equipped===a?' ✅':'');
-    const btn = document.createElement('button'); btn.className='pill'; btn.style.marginLeft='6px'; btn.textContent = p.equipped===a? 'Unequip' : 'Equip'; btn.onclick = ()=>{ p.equipped = p.equipped===a? null : a; save(S_PROFILES, load(S_PROFILES)); renderAchievementsFor(p, targetEl); };
-    const wrapper = document.createElement('div'); wrapper.style.display='inline-flex'; wrapper.style.alignItems='center'; wrapper.style.marginRight='8px';
-    wrapper.appendChild(pill); wrapper.appendChild(btn); targetEl.appendChild(wrapper);
-  });
-  if(!(p.achievements||[]).length){ targetEl.innerHTML = '<div class="muted">No achievements yet — increase hire count to unlock.</div>'; }
-}
-
-/* render comments for profile */
-function renderCommentsFor(p){
-  const area = document.getElementById('commentsArea'); area.innerHTML='';
-  (p.comments||[]).forEach(c=>{
-    const el = document.createElement('div'); el.className='comment';
-    const left = document.createElement('div'); left.style.flex='1'; left.innerHTML = `<div class="who">${escapeHtml(c.user)}</div><div class="txt">${escapeHtml(c.text)}</div><div class="muted" style="margin-top:6px">Likes: ${c.likes||0}</div>`;
-    const actions = document.createElement('div'); actions.className='comment-actions';
-    const like = document.createElement('button'); like.className='pill'; like.textContent='Like'; like.onclick = ()=>{ c.likes = (c.likes||0)+1; save(S_PROFILES, load(S_PROFILES)); renderCommentsFor(p); };
-    const del = document.createElement('button'); del.className='pill'; del.textContent='Delete'; del.onclick = ()=>{ p.comments = p.comments.filter(x=>x.id!==c.id); save(S_PROFILES, load(S_PROFILES)); renderCommentsFor(p); };
-    actions.appendChild(like); actions.appendChild(del);
-    el.appendChild(left); el.appendChild(actions); area.appendChild(el);
+function renderProfiles(list){
+  const box = $("#profiles");
+  box.innerHTML = "";
+  if(!list.length){ $("#emptyState").style.display="block"; return; }
+  $("#emptyState").style.display="none";
+  list.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "p-row";
+    const avatar = p.avatar && p.avatar.startsWith("http") ? p.avatar : "https://via.placeholder.com/64";
+    row.innerHTML = `
+      <img class="avatar" src="${avatar}" alt="avatar">
+      <div class="p-meta">
+        <b>${p.name || "Unnamed"}</b>
+        <div class="muted">${p.skill || "—"} • Age ${p.age ?? "—"} • ID: ${p.uid}</div>
+        <div class="muted">${p.address || ""}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" data-edit>Edit</button>
+        <button class="btn primary" data-chat>Chat</button>
+      </div>
+    `;
+    row.querySelector("[data-edit]").onclick = ()=> openProfileForm(p);
+    row.querySelector("[data-chat]").onclick = ()=> openChat(p);
+    box.appendChild(row);
   });
 }
 
-/* Send hire request */
-function sendHireRequest(profileId){
-  const name = prompt('Enter your name to send hire request:'); if(!name) return;
-  const reqs = load(S_REQS); reqs.push({id:uid(), to:profileId, from:name, time:new Date().toISOString(), status:'pending'}); save(S_REQS, reqs); alert('Hire request sent'); updateNotifDot();
-}
-
-/* Chat modal - marks messages read */
-function openChat(profileId){
-  const profiles = load(S_PROFILES); const p = profiles.find(x=>x.id===profileId);
-  const msgsAll = load(S_MSGS);
-  // mark as read
-  for(const m of msgsAll){ if(m.chat_with===profileId){ m.read = true; } }
-  save(S_MSGS, msgsAll); updateNotifDot();
-  const msgs = msgsAll.filter(m=>m.chat_with===profileId);
-  let html = `<div style="display:flex;justify-content:space-between;align-items:center"><h3>Chat — ${escapeHtml(p.name)}</h3><div><button class="pill" onclick="closeModal()">Close</button></div></div><div style="height:320px;overflow:auto;padding:10px;border-radius:10px;background:rgba(255,255,255,0.01);margin-top:12px" id="chatHist">`;
-  for(const m of msgs){ html += `<div style="margin:8px 0;padding:10px;border-radius:10px;max-width:70%;${m.from==='You'?'margin-left:auto;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:#042320':'background:rgba(255,255,255,0.02);color:inherit'}">${escapeHtml(m.text)}</div>`; }
-  html += `</div><div style="display:flex;gap:8px;margin-top:12px"><input id="chatInput" class="input" placeholder="Message..."><button class="cta view" id="sendChatBtn">Send</button></div>`;
-  showModal(html);
-  document.getElementById('sendChatBtn').onclick = ()=>{
-    const text = document.getElementById('chatInput').value.trim(); if(!text) return;
-    const all = load(S_MSGS); all.push({id:uid(), chat_with:profileId, from:'You', text, time:new Date().toISOString(), read:true}); save(S_MSGS, all); closeModal(); openChat(profileId); updateNotifDot();
+// Profile form
+function openProfileForm(p=null){
+  $("#f_name").value = p?.name || "";
+  $("#f_age").value = p?.age || "";
+  $("#f_skill").value = p?.skill || "Plumber";
+  $("#f_contact").value = p?.contact || "";
+  $("#f_address").value = p?.address || "";
+  $("#f_avatar").value = p?.avatar || "";
+  $("#saveProfile").onclick = async ()=>{
+    const payload = {
+      uid: p?.uid || genUID(),
+      name: $("#f_name").value.trim(),
+      age: Number($("#f_age").value)||null,
+      skill: $("#f_skill").value.trim(),
+      contact: $("#f_contact").value.trim(),
+      address: $("#f_address").value.trim(),
+      avatar: $("#f_avatar").value.trim()
+    };
+    // naive upsert: try insert; on duplicate, we could add an /update endpoint. For now: if exists, show note.
+    try{
+      await apiPost("/profiles", payload);
+      addNotif(`Profile saved: ${payload.name}`, false);
+    }catch(e){
+      addNotif("Profile might already exist (UID in use). Implement /update if needed.", true);
+    }
+    $("#profileDlg").close();
+    await loadProfiles();
   };
+  $("#cancelProfile").onclick = ()=> $("#profileDlg").close();
+  $("#profileDlg").showModal();
 }
 
-/* Modal helpers */
-function showModal(innerHtml){ const root=document.getElementById('modalRoot'); root.style.display='block'; root.innerHTML = `<div class="modal"><div class="modal-card">${innerHtml}</div></div>`; }
-function closeModal(){ const root=document.getElementById('modalRoot'); root.style.display='none'; root.innerHTML=''; updateNotifDot(); }
+// Chat
+let CHAT_PEER = null;
+async function openChat(them){
+  CHAT_PEER = them;
+  $("#chatTitle").textContent = `Chat with ${them.name}`;
+  $("#chatWrap").innerHTML = "";
+  $("#chatDlg").showModal();
+  const history = await apiGet(`/messages/${ME.uid}/${them.uid}`);
+  history.forEach(renderMsg);
+}
+function renderMsg(m){
+  const div = document.createElement("div");
+  div.className = "msg " + (m.sender_uid === ME.uid ? "me" : "them");
+  div.textContent = m.text;
+  $("#chatWrap").appendChild(div);
+  $("#chatWrap").scrollTop = $("#chatWrap").scrollHeight;
+}
+$("#sendMsg").onclick = async ()=>{
+  const txt = $("#chatText").value.trim();
+  if(!txt || !CHAT_PEER) return;
+  await apiPost("/messages", { sender_uid: ME.uid, receiver_uid: CHAT_PEER.uid, text: txt });
+  renderMsg({ sender_uid: ME.uid, text: txt });
+  $("#chatText").value = "";
+};
 
-/* Create profile modal */
-function openCreateModal(){
-  showModal(`<h3>Create Profile</h3><div style="display:grid;gap:8px;margin-top:8px"><input id="cpName" class="input" placeholder="Full name"><input id="cpOcc" class="input" placeholder="Occupation"><input id="cpContact" class="input" placeholder="Contact"><input id="cpAddr" class="input" placeholder="Address"><label class="muted">Avatar (optional)</label><input id="cpFile" type="file" accept="image/*"><div style="display:flex;gap:8px;justify-content:flex-end"><button class="pill" id="cpSaveBtn">Save</button><button class="pill" onclick="closeModal()">Cancel</button></div></div>`);
-  document.getElementById('cpFile').addEventListener('change', function(e){ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ this.dataset.dataurl = r.result }; r.readAsDataURL(f); });
-  document.getElementById('cpSaveBtn').onclick = ()=>{
-    const name = document.getElementById('cpName').value.trim(); const occ = document.getElementById('cpOcc').value.trim(); const contact = document.getElementById('cpContact').value.trim(); const addr = document.getElementById('cpAddr').value.trim();
-    if(!name||!occ) return alert('Name and occupation required'); const profiles = load(S_PROFILES); const avatar = document.getElementById('cpFile').dataset?.dataurl || ''; profiles.push({id:uid(), name, occupation:occ, contact, address:addr, avatar, rating_sum:0, num_votes:0, hire_count:0, achievements:[], equipped:null, comments:[], favorite:false, saved:false}); save(S_PROFILES, profiles); closeModal(); renderProfiles(); alert('Profile created');
-  };
+// Notifications (simple demo, client-side only)
+function addNotif(text, unread=true){
+  const el = document.createElement("div");
+  el.className = "p-row";
+  el.innerHTML = `<div class="muted" style="grid-column:1/-1">${text}</div>`;
+  (unread ? $("#notifUnread") : $("#notifRead")).appendChild(el);
+  updateNotifCount();
+}
+function updateNotifCount(){
+  const count = $("#notifUnread").children.length;
+  const pill = $("#notifCount");
+  pill.textContent = String(count);
+  pill.style.display = count ? "inline-block" : "none";
 }
 
-/* Emergency */
-function sendEmergency(){ const name=document.getElementById('emName').value.trim(); const contact=document.getElementById('emContact').value.trim(); const desc=document.getElementById('emDesc').value.trim(); if(!name||!contact||!desc) return alert('Please fill all fields'); const reqs = load(S_REQS); reqs.push({id:uid(), title:'Emergency', from:name, contact, desc, time:new Date().toISOString(), status:'pending'}); save(S_REQS, reqs); alert('Emergency sent and will appear in Notifications'); toLanding(); updateNotifDot(); }
+// Search & filters
+$("#q").addEventListener("input", loadProfiles);
+$("#category").addEventListener("change", loadProfiles);
 
-/* Notifications rendering */
-function renderNotif(tab){
-  const area = document.getElementById('notifArea'); area.innerHTML='';
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); if(tab==='requests') document.getElementById('tabReq').classList.add('active'); else document.getElementById('tabMsg').classList.add('active');
-  const reqs = load(S_REQS); const msgs = load(S_MSGS);
-  if(tab==='requests'){
-    if(reqs.length===0) { area.innerHTML = '<div class="muted">No requests</div>'; return; }
-    reqs.slice().reverse().forEach(r=>{
-      const div = document.createElement('div'); div.className='notif-item'; const when = new Date(r.time).toLocaleString(); div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${escapeHtml(r.title||'Hire Request')}</strong></div><div class="muted">${when}</div></div><div class="muted" style="margin-top:6px">${escapeHtml(r.from||'')}</div>`;
-      if(r.status==='pending'){ const a=document.createElement('button'); a.className='pill'; a.textContent='Accept'; a.style.marginRight='8px'; a.onclick = ()=>{ acceptReq(r.id); }; const d=document.createElement('button'); d.className='pill'; d.textContent='Decline'; d.onclick = ()=>{ declineReq(r.id); }; div.appendChild(a); div.appendChild(d); } else { div.innerHTML += `<div style="margin-top:8px" class="muted">Status: ${r.status}</div>`; }
-      area.appendChild(div);
-    });
-  } else {
-    // messages grouped by chat_with
-    if(msgs.length===0) { area.innerHTML = '<div class="muted">No messages</div>'; return; }
-    const grouped = {}; msgs.forEach(m=>{ grouped[m.chat_with] = grouped[m.chat_with] || []; grouped[m.chat_with].push(m); });
-    Object.keys(grouped).forEach(chatId=>{
-      const arr = grouped[chatId]; const last = arr[arr.length-1]; const prof = load(S_PROFILES).find(p=>p.id===chatId);
-      const title = prof ? prof.name : ('Chat'); const unread = arr.filter(x=>!x.read && x.from!=='You').length;
-      const div = document.createElement('div'); div.className='notif-item'; div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${escapeHtml(title)}</strong>${unread?(' <span style="color:var(--danger)">• '+unread+' new</span>'):''}</div><div class="muted">${new Date(last.time).toLocaleString()}</div></div><div class="muted" style="margin-top:6px">${escapeHtml(last.text||'')}</div>`;
-      const openBtn = document.createElement('button'); openBtn.className='pill'; openBtn.style.marginTop='8px'; openBtn.textContent='Open Chat'; openBtn.onclick = ()=>{ openChatFromNotif(chatId); };
-      div.appendChild(openBtn); area.appendChild(div);
-    });
-  }
-}
-
-/* Accept / Decline */
-function acceptReq(id){ const reqs = load(S_REQS); const r = reqs.find(x=>x.id===id); if(!r) return; r.status='accepted'; save(S_REQS, reqs); if(r.to){ const profiles = load(S_PROFILES); const p = profiles.find(x=>x.id===r.to); if(p){ p.hire_count = (p.hire_count||0)+1; awardAchievements(p); save(S_PROFILES, profiles); } } renderNotif('requests'); updateNotifDot(); renderProfiles(); alert('Request accepted'); }
-function declineReq(id){ let reqs = load(S_REQS); reqs = reqs.filter(x=>x.id!==id); save(S_REQS, reqs); renderNotif('requests'); updateNotifDot(); alert('Request declined'); }
-
-/* award achievements */
-function awardAchievements(p){ ACH.forEach(([t,name])=>{ if((p.hire_count||0) >= t && !(p.achievements||[]).includes(name)){ p.achievements = p.achievements||[]; p.achievements.push(name); } }); save(S_PROFILES, load(S_PROFILES)); }
-
-/* Open chat from notification (mark read) */
-function openChatFromNotif(chatId){ const msgs = load(S_MSGS); for(const m of msgs){ if(m.chat_with===chatId){ m.read = true; } } save(S_MSGS, msgs); updateNotifDot(); openChat(chatId); }
-
-/* update noti badge */
-function updateNotifDot(){ const msgs = load(S_MSGS); const reqs = load(S_REQS); const unreadMsgs = msgs.filter(m=>!m.read && m.from!=='You').length; const pendingReq = reqs.filter(r=>r.status==='pending').length; const sum = unreadMsgs + pendingReq; document.getElementById('notifDot').style.display = sum>0 ? 'inline-block' : 'none'; }
-
-/* sanitize */
-function escapeHtml(str){ if(!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-/* init messages if none */
-if(!localStorage.getItem(S_MSGS)){ save(S_MSGS, [{id:uid(), chat_with:null, from:'System', text:'Welcome to Smart Hire', time:new Date().toISOString(), read:true}]); }
-
-/* Utilities / initial render */
-function toLanding(){ showPage('landingPage'); }
-function renderProfiles(){ showPage('profilesPage'); const el = document.getElementById('detailsContent'); el.innerHTML = '<div class="muted">Select a profile from the left to view quick info.</div>'; const search = document.getElementById('globalSearch'); if(search) search.addEventListener('input', ()=>renderProfiles()); const list = document.getElementById('profilesList'); list.innerHTML=''; const q = (document.getElementById('globalSearch').value||'').toLowerCase(); const filter = document.getElementById('filterSelect').value; const profiles = load(S_PROFILES); const filtered = profiles.filter(p=>{ if(filter==='fav' && !p.favorite) return false; if(filter==='saved' && !p.saved) return false; if(q && !((p.name||'').toLowerCase().includes(q) || (p.occupation||'').toLowerCase().includes(q))) return false; return true; }); if(filtered.length===0){ list.innerHTML = '<div class="muted">No profiles — create one with + Create</div>'; updateNotifDot(); return; } filtered.forEach(p=>{ const card = document.createElement('div'); card.className='profile-card'; const av = document.createElement('img'); av.className='avatar'; av.src = p.avatar || placeholder(p.name,140); const meta = document.createElement('div'); meta.className='meta'; meta.innerHTML = `<div class="name">${escapeHtml(p.name)}</div><div class="role">${escapeHtml(p.occupation)} • ${escapeHtml(p.address||'')}</div>`; const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='12px'; left.appendChild(av); left.appendChild(meta); const btn = document.createElement('button'); btn.className='view-btn'; btn.textContent='View Profile'; btn.onclick = ()=>openProfileDetail(p.id); card.appendChild(left); card.appendChild(btn); list.appendChild(card); }); updateNotifDot(); }
-
-/* ensure initial page */
-renderProfiles(); updateNotifDot();
-
+// Initial boot
+loadProfiles().catch(err=>console.error(err));
 </script>
 </body>
 </html>
