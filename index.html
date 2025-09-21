@@ -326,7 +326,15 @@ function loadState(){ try{ const s = localStorage.getItem(STORAGE_KEY); if(s){ c
 /* ---------- Theme system (applies to tokens/btns/timer) ---------- */
 const themeDefinitions = {
   cute: { accent:'#ff6aa2', btnText:'#fff', bg1:'#fff0f6', bg2:'#fff7fb', timer:'#6d174d', progress:'linear-gradient(90deg,#ff6aa2,#ff8fbf)' },
-  tech: { accent:'#00aaff', btnText:'#fff', bg1:'#081126', bg2:'#12223b', timer:'#e6eef8', progress:'linear-gradient(90deg,#00aaff,#4ad6ff)' },
+ tech: { 
+  accent:'#00aaff', 
+  btnText:'#fff', 
+  bg1:'#081126', 
+  bg2:'#12223b', 
+  timer:'#00aaff',   // 🔵 now blue
+  progress:'linear-gradient(90deg,#00aaff,#4ad6ff)' 
+},
+
   cold: { accent:'#2bb7ff', btnText:'#fff', bg1:'#d9f1ff', bg2:'#f2fbff', timer:'#0b3a57', progress:'linear-gradient(90deg,#2bb7ff,#5cd6ff)' }
 };
 
