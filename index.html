@@ -228,7 +228,7 @@ html,body{height:100%; margin:0; background:linear-gradient(135deg,var(--bg1),va
         <div class="box-card mode-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center; padding:22px; cursor:pointer;" id="modeChallenges">
           <div style="font-size:40px;">⚔️</div>
           <div style="font-weight:800; margin-top:8px;">Challenges</div>
-          <div class="muted" style="margin-top:6px; text-align:center;">Battle challengers: Jashandeep, Khushi, AI</div>
+          <div class="muted" style="margin-top:6px; text-align:center;">Battle Challenge: CEO Jashandeepdeep, Guess Moji, AI</div>
         </div>
         <div class="box-card mode-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center; padding:22px; cursor:pointer;" id="modePet">
           <div style="font-size:40px;">🐾</div>
@@ -249,13 +249,13 @@ html,body{height:100%; margin:0; background:linear-gradient(135deg,var(--bg1),va
       <div style="margin-top:16px;"><button class="btn secondary" id="backFromChallenges">Back</button></div>
     </div>
 
-    <!-- Jashandeep Battle (GK Quiz) -->
+    <!-- CEO Jashandeepdeep Battle (GK Quiz) -->
     <div id="jashBattlePage" class="hidden">
-      <h3>Challenge: CEO Jashandeep</h3>
-      <div class="muted">10 GK questions — Jashandeep answers instantly. Can you keep up?</div>
+      <h3>Challenge: CEO CEO Jashandeepdeep</h3>
+      <div class="muted">10 GK questions — CEO Jashandeepdeep answers instantly. Can you keep up?</div>
       <div style="display:flex; gap:14px; margin-top:12px; align-items:flex-start;">
         <div style="flex:1;" class="box-card">
-          <div style="font-weight:800;">Jashandeep (CPU)</div>
+          <div style="font-weight:800;">CEO Jashandeepdeep (CPU)</div>
           <div id="jashScore" class="muted" style="margin-top:6px;">Score: 0</div>
           <div id="jashAnswerArea" style="margin-top:12px;"></div>
         </div>
@@ -506,11 +506,19 @@ function getExpPerMilestone(){ // increases by 5 for each level (per request)
   return BASE_MILESTONE_EXP + (state.level * 5);
 }
 
+
+function getLevelThreshold(lv = state.level){
+  // Base threshold is 20; it increases by 5 for each level (20, 25, 30, ...)
+  return 20 + (lv * 5);
+}
+
 function addExp(amount){
   state.exp += amount;
-  // Level up loop
-  while(state.exp >= LEVEL_THRESHOLD && state.level < MAX_LEVEL){
-    state.exp -= LEVEL_THRESHOLD;
+  // Level up loop — threshold increases by 5 each level
+  while(state.level < MAX_LEVEL){
+    const threshold = getLevelThreshold(state.level);
+    if(state.exp < threshold) break;
+    state.exp -= threshold;
     state.level++;
     onLevelUp();
   }
@@ -526,22 +534,25 @@ function onLevelUp(){
   }
   // a level-up is requested to increase exp rate - handled by getExpPerMilestone()
   // notify (visual)
-  setTimeout(()=> {
+  setTimeout(()=>{
     showSmallToast('Level up! Now Lv ' + state.level + ' — ' + state.user.title);
-  }, 800);
+  }, 500);
   saveState();
 }
 
 /* ---------- UI rendering ---------- */
+
 function updateStudyBar(){
-  const pct = Math.min(100, (state.exp/LEVEL_THRESHOLD)*100);
+  const threshold = getLevelThreshold(state.level);
+  const pct = Math.min(100, (state.exp/threshold)*100);
   const inner = $('progressInner');
   if(inner) inner.style.width = pct + '%';
-  const expText = $('expText'); if(expText) expText.innerText = `EXP ${state.exp}/${LEVEL_THRESHOLD}`;
+  const expText = $('expText'); if(expText) expText.innerText = `EXP ${state.exp}/${threshold}`;
   const levelText = $('levelText'); if(levelText) levelText.innerText = `Lv ${state.level}/${MAX_LEVEL}`;
   const title = state.user.title || computeTitleForLevel(state.level);
   const levelTitleEl = $('levelTitle'); if(levelTitleEl) levelTitleEl.innerText = title;
 }
+
 
 /* show/hide study UI depending on experience creation */
 function renderStudyUiVisibility(){
@@ -690,7 +701,7 @@ function handleComplete(bi, ti){
     if(!confirm('Task complete — would you like me to delete it?')) return;
     state.boxes[bi].items.splice(ti,1);
     renderTasks(); renderBoxes(); renderAllTasks(); saveState();
-  }, 5000);
+  }, 500);
 }
 
 /* box functions */
@@ -900,7 +911,7 @@ function showSmallToast(msg){
   t.style.borderRadius='12px'; t.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)'; t.style.background='rgba(0,0,0,0.7)'; t.style.color='white'; t.style.zIndex=99999;
   t.innerText = msg;
   document.body.appendChild(t);
-  setTimeout(()=>{ t.style.transition='opacity .3s'; t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 900);
+  setTimeout(()=>{ t.style.transition='opacity .3s'; t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 500);
 }
 function showExpToast(msg){
   const t = document.createElement('div');
@@ -908,7 +919,7 @@ function showExpToast(msg){
   t.style.background='linear-gradient(90deg,var(--accent),#8b5cf6)'; t.style.color='white'; t.style.fontWeight='700'; t.style.zIndex=99999;
   t.innerText = msg;
   document.body.appendChild(t);
-  setTimeout(()=>{ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 1400);
+  setTimeout(()=>{ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 500);
 }
 
 /* ---------- Utilities ---------- */
@@ -1033,7 +1044,7 @@ function init(){
     if(!list) return;
     list.innerHTML='';
     const challengers = [
-      { id:'jash', name:'CEO Jashandeep', desc:'10 GK questions — unbeatable', icon:'🧠' },
+      { id:'jash', name:'CEO CEO Jashandeepdeep', desc:'10 GK questions — unbeatable', icon:'🧠' },
       { id:'emoji', name:'Emoji Battle', desc:'Guess emojis and win EXP', icon:'😊' },
       { id:'ai', name:'AI Calculator', desc:'Speed math — AI is fast', icon:'🤖' }
     ];
@@ -1051,7 +1062,7 @@ function init(){
     });
   }
 
-  // --------- Jashandeep GK Battle ---------
+  // --------- CEO Jashandeepdeep GK Battle ---------
   const jashQuestions = [
     {q:'What is the capital of France?', opts:['Paris','Rome','Berlin','Madrid'], a:0},
     {q:'Which planet is known as the Red Planet?', opts:['Venus','Mars','Jupiter','Saturn'], a:1},
@@ -1149,16 +1160,44 @@ function renderJashQuestion(){
       advanceSoon(80);
     }, 5000);
   }
+
 function finishJashBattle(){
-    // ensure Jash is unbeatable: if user somehow got equal or greater score, reduce it so CPU wins
-    if(jashState.userScore >= jashState.jashScore){
-      jashState.userScore = Math.max(0, jashState.jashScore - 1);
-      $('userScore').innerText = 'Score: ' + jashState.userScore;
-    }
-    const resultArea = $('jashResultArea');
-    resultArea.innerHTML = `<div class="box-card"><div style="font-weight:800;">Battle finished</div><div class="muted" style="margin-top:6px;">Jashandeep: ${jashState.jashScore} — You: ${jashState.userScore}</div><div style="margin-top:8px;"><button class="btn" id="jashBackBtn">Back to Challenges</button></div></div>`;
-    const backBtn = $('jashBackBtn'); if(backBtn) backBtn.addEventListener('click', ()=>{ hide('jashBattlePage'); show('challengesPage'); renderChallengesList(); });
+  // Determine winner normally (no forced CPU win)
+  const winner = (jashState.userScore > jashState.jashScore) ? 'You' : 'AI';
+  const earned = (winner === 'You') ? 10 : 0; // victory = 10 EXP per your request
+  const title = (winner === 'You') ? 'Victory!' : 'Defeat';
+  const msg = `CEO Jashandeepdeep: ${jashState.jashScore} — You: ${jashState.userScore}` + (earned ? ` — You earned ${earned} EXP` : '');
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'jashBattleResultModal';
+  modal.style.zIndex = 200000;
+  modal.innerHTML = `<div class="modal-card" style="max-width:420px;">
+    <h3 style="margin:0;">${title}</h3>
+    <div class="muted" style="margin-top:8px;">${msg}</div>
+    <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn" id="jashRetryBtn">Retry</button>
+      <button class="btn secondary" id="jashBackBtn">Back</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+
+  if(earned > 0){
+    addExp(earned);
+    showExpToast('+' + earned + ' EXP');
   }
+
+  document.getElementById('jashBackBtn').addEventListener('click', ()=>{
+    const m = document.getElementById('jashBattleResultModal');
+    if(m) m.remove();
+    hide('jashBattlePage'); show('challengesPage'); renderChallengesList();
+  });
+  document.getElementById('jashRetryBtn').addEventListener('click', ()=>{
+    const m = document.getElementById('jashBattleResultModal');
+    if(m) m.remove();
+    startJashBattle();
+  });
+}
+
 
   // Jash quit
   const jashQuit = $('jashQuitBtn'); if(jashQuit) jashQuit.addEventListener('click', ()=>{ if(confirm('Quit challenge?')){ hide('jashBattlePage'); show('challengesPage'); renderChallengesList(); } });
@@ -1279,45 +1318,105 @@ function finishJashBattle(){
     renderAiQuestion();
   }
 
-  function renderAiQuestion(){
-    const i = aiState.idx;
-    if(i >= aiState.problems.length){ finishAiBattle(); return; }
-    const p = aiState.problems[i];
-    $('aiQuestionNum').innerText = `Problem ${i+1} / ${aiState.problems.length}`;
-    $('aiQuestionText').innerText = p.q;
-    // AI answers instantly
-    setTimeout(()=>{
-      aiState.aiScore++;
-      $('aiScore').innerText = 'Score: ' + aiState.aiScore;
-    }, 800);
-    // wait for user input (Enter)
-    const input = $('aiUserAnswer'); input.value='';
-    input.focus();
-    function onKey(e){
-      if(e.key==='Enter'){
-        const v = input.value.trim();
-        if(v==='') return;
-        if(Number(v) === p.ans){ aiState.userScore++; $('aiUserScore').innerText = 'Score: ' + aiState.userScore; showSmallToast('+1'); }
-        else { showSmallToast('Wrong'); }
-        input.removeEventListener('keydown', onKey);
-        aiState.idx++;
-        setTimeout(renderAiQuestion, 600);
-      }
-    }
-    input.addEventListener('keydown', onKey);
-    // if user doesn't answer in 4000ms, move on
-    setTimeout(()=>{
+  
+function renderAiQuestion(){
+  const i = aiState.idx;
+  if(i >= aiState.problems.length){ finishAiBattle(); return; }
+  const p = aiState.problems[i];
+  $('aiQuestionNum').innerText = `Problem ${i+1} / ${aiState.problems.length}`;
+  $('aiQuestionText').innerText = p.q;
+
+  // clear previous timers/listeners if present
+  if(aiState._aiTimer){ clearTimeout(aiState._aiTimer); aiState._aiTimer = null; }
+  if(aiState._timeoutId){ clearTimeout(aiState._timeoutId); aiState._timeoutId = null; }
+
+  const input = $('aiUserAnswer'); const submitBtn = $('aiSubmitBtn');
+  input.value = '';
+  input.focus();
+  let answered = false;
+
+  // AI answers very quickly (≈50ms)
+  aiState._aiTimer = setTimeout(()=>{
+    aiState.aiScore++;
+    $('aiScore').innerText = 'Score: ' + aiState.aiScore;
+  }, 50);
+
+  function cleanup(){
+    try{
       input.removeEventListener('keydown', onKey);
-      if(aiState.idx === i) { aiState.idx++; renderAiQuestion(); }
-    }, 4000);
+      submitBtn.removeEventListener('click', onClick);
+    }catch(e){}
+    if(aiState._aiTimer){ clearTimeout(aiState._aiTimer); aiState._aiTimer = null; }
+    if(aiState._timeoutId){ clearTimeout(aiState._timeoutId); aiState._timeoutId = null; }
   }
 
-  function finishAiBattle(){
-    // ensure AI wins (if tie or AI loses, nudge result)
-    if(aiState.userScore >= aiState.aiScore){ aiState.userScore = Math.max(0, aiState.aiScore - 1); $('aiUserScore').innerText = 'Score: ' + aiState.userScore; }
-    $('aiResultArea').innerHTML = `<div class="box-card"><div style="font-weight:800;">AI Battle finished</div><div class="muted" style="margin-top:6px;">AI: ${aiState.aiScore} — You: ${aiState.userScore}</div><div style="margin-top:8px;"><button class="btn" id="aiBackBtn">Back to Challenges</button></div></div>`;
-    const backBtn = $('aiBackBtn'); if(backBtn) backBtn.addEventListener('click', ()=>{ hide('aiBattlePage'); show('challengesPage'); renderChallengesList(); });
+  function submitAnswer(){
+    if(answered) return;
+    const v = input.value.trim();
+    if(v === '') return;
+    answered = true;
+    if(Number(v) === p.ans){
+      aiState.userScore++; $('aiUserScore').innerText = 'Score: ' + aiState.userScore; showSmallToast('+1');
+    } else {
+      showSmallToast('Wrong');
+    }
+    cleanup();
+    aiState.idx++;
+    setTimeout(renderAiQuestion, 200);
   }
+
+  function onKey(e){ if(e.key === 'Enter') submitAnswer(); }
+  function onClick(e){ submitAnswer(); }
+
+  input.addEventListener('keydown', onKey);
+  submitBtn.addEventListener('click', onClick);
+
+  // auto-advance after 4000ms if unanswered
+  aiState._timeoutId = setTimeout(()=>{
+    if(!answered){
+      cleanup();
+      aiState.idx++;
+      renderAiQuestion();
+    }
+  }, 1200);
+}
+
+function finishAiBattle(){
+  // Determine winner normally (no forced result)
+  const winner = (aiState.userScore > aiState.aiScore) ? 'You' : 'AI';
+  const earned = (winner === 'You') ? 10 : 0; // award 10 EXP for victory
+  const title = (winner === 'You') ? 'Victory!' : 'Defeat';
+  const msg = `AI: ${aiState.aiScore} — You: ${aiState.userScore}` + (earned ? ` — You earned ${earned} EXP` : '');
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'aiBattleResultModal';
+  modal.style.zIndex = 200000;
+  modal.innerHTML = `<div class="modal-card" style="max-width:420px;">
+    <h3 style="margin:0;">${title}</h3>
+    <div class="muted" style="margin-top:8px;">${msg}</div>
+    <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn" id="aiRetryBtn">Retry</button>
+      <button class="btn secondary" id="aiBackBtn">Back</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+
+  if(earned > 0){
+    addExp(earned);
+    showExpToast('+' + earned + ' EXP');
+  }
+
+  document.getElementById('aiBackBtn').addEventListener('click', ()=>{
+    const m = document.getElementById('aiBattleResultModal');
+    if(m) m.remove();
+    hide('aiBattlePage'); show('challengesPage'); renderChallengesList();
+  });
+  document.getElementById('aiRetryBtn').addEventListener('click', ()=>{
+    const m = document.getElementById('aiBattleResultModal');
+    if(m) m.remove();
+    startAiBattle();
+  });
+}
 
   const aiQuit = $('aiQuitBtn'); if(aiQuit) aiQuit.addEventListener('click', ()=>{ if(confirm('Quit challenge?')){ hide('aiBattlePage'); show('challengesPage'); renderChallengesList(); } });
 
@@ -1502,7 +1601,7 @@ function showBattleResultPopup(winner){
     lines.push('');
     lines.push('History:');
     roastState.history.forEach((h, idx)=>{
-      lines.push(`R${idx+1} — Khushi: ${h.k} | You: ${h.u}`);
+      lines.push(`R${idx+1} — Guess Moji: ${h.k} | You: ${h.u}`);
     });
     const blob = new Blob([lines.join('\n')], {type: 'text/plain'});
     const url = URL.createObjectURL(blob);
@@ -1906,7 +2005,12 @@ window.startPetMode = startPetMode;
       var p = localStorage.getItem('currentPage');
       if(!p) return;
       // call the appropriate start function if available
-      if(p === 'petStudyPage' && typeof window.startPetMode === 'function'){ window.startPetMode(); return; }
+      if(p === 'petStudyPage'){
+      // Don't auto-open Pet mode on reload — send user to the modes/menu instead.
+      try{ localStorage.setItem('currentPage','studyCounterMenu'); }catch(e){}
+      if(typeof window.show === 'function'){ try{ window.show('studyCounterMenu'); }catch(e){} }
+      return;
+    }
       if(p === 'emojiBattlePage' && typeof window.startEmojiBattle === 'function'){ window.startEmojiBattle(); return; }
       if(p === 'jashBattlePage' && typeof window.startJashBattle === 'function'){ window.startJashBattle(); return; }
       if(p === 'aiBattlePage' && typeof window.startAiBattle === 'function'){ window.startAiBattle(); return; }
