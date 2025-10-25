@@ -2072,6 +2072,8 @@ function showSerialAnalytics(serialOrTitle) {
     updateHeaderVisibility();
   
     // ---------- Browse Stories rendering & Preview/Reader ----------
+// Story browsing & rendering (full snippet, fixed demo merge bug)
+
 const STORY_ALGO_CONFIG = {
   popularityWeight: 0.5,      // lower to allow new creators
   recencyWeight: 0.25,        // same as before
@@ -2124,7 +2126,7 @@ function normalizeArray(values) {
 }
 function shuffleArray(arr, rng=Math.random) {
   for (let i = arr.length-1; i>0; i--) {
-    const j = Math.floor((rng ? rng() : Math.random())*(i+1));
+    const j = Math.floor(rng()*(i+1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
@@ -2132,7 +2134,7 @@ function shuffleArray(arr, rng=Math.random) {
 function computeStoryPopularity(s) {
   const reads = Number(s.reads ?? s.readCount ?? 0);
   const likes = Number(s.likes ?? 0);
-  return Math.log1p(reads) + 1.5*Math.log1p(likes); // log scale like ALGO_CONFIG
+  return Math.log1p(reads) + 1.5*Math.log1p(likes);
 }
 
 // ================= SCORING =================
@@ -2177,7 +2179,7 @@ function pickStoryExploration(candidates, count, rng) {
   const scored = candidates.map(s => {
     const novelty = s.__novelty ?? 0.5;
     const recency = s.__recNorm ?? 0.5;
-    return Object.assign({}, s, { __exploreScore: novelty*0.6 + recency*0.4 + (rng ? rng() : Math.random())*0.1 });
+    return Object.assign({}, s, { __exploreScore: novelty*0.6 + recency*0.4 + rng()*0.1 });
   });
 
   scored.sort((a,b) => b.__exploreScore - a.__exploreScore);
@@ -2185,8 +2187,9 @@ function pickStoryExploration(candidates, count, rng) {
 }
 
 // Demo stories generator
-function generateDemoStories(count=50,rng){rng=rng||rngForStoryRender(); 
-  const genres=["Action","Romance","Comedy","Fantasy","Horror","Tragic","Thriller","Adventure","Crime","Historic"]; 
+function generateDemoStories(count=50, rng) {
+  rng = rng || rngForStoryRender();
+  const genres=["Action","Romance","Comedy","Fantasy","Horror","Tragic","Thriller","Adventure","Crime","Historic"];
   const covers=[
     "https://picsum.photos/seed/demo1/600/900",
     "https://picsum.photos/seed/demo2/600/900",
@@ -2194,8 +2197,8 @@ function generateDemoStories(count=50,rng){rng=rng||rngForStoryRender();
     "https://picsum.photos/seed/demo4/600/900",
     "https://picsum.photos/seed/demo5/600/900",
     "https://picsum.photos/seed/demo6/600/900"
-  ]; 
-  const stories=[]; 
+  ];
+  const stories=[];
   for(let i=0;i<count;i++){
     const genre=genres[Math.floor(rng()*genres.length)];
     const title=`${genre} Demo Story ${i+1}`;
@@ -2203,8 +2206,18 @@ function generateDemoStories(count=50,rng){rng=rng||rngForStoryRender();
     const likes=Math.floor(rng()*400);
     const daysAgo=Math.floor(rng()*400);
     const date=new Date(Date.now()-daysAgo*86400000).toISOString();
-    stories.push({id:`demo-${i+1}`,title,genre,description:`Demo ${genre.toLowerCase()} story — random readCount ${readCount}.`,cover:covers[i%covers.length],readCount,reads:readCount,likes,createdAt:date});
-  } 
+    stories.push({
+      id:`demo-${i+1}`,
+      title,
+      genre,
+      description:`Demo ${genre.toLowerCase()} story — random readCount ${readCount}.`,
+      cover:covers[i%covers.length],
+      readCount,
+      reads:readCount,
+      likes,
+      createdAt:date
+    });
+  }
   return stories;
 }
 
@@ -2221,13 +2234,19 @@ function renderBrowseStories(selectedCategory = 'All', opts = { includeDemo: fal
     cards.style.width = '100%';
     cards.style.flexWrap = 'wrap';
 
+    // Filter only public stories from your real data source (storiesData expected)
     const publicStories = (storiesData || []).filter(s => s.status === 'Public');
     let filteredStories = selectedCategory !== 'All'
       ? publicStories.filter(s => (s.genre || '').toLowerCase() === selectedCategory.toLowerCase())
       : publicStories;
 
-    const demoStories = opts.includeDemo ? generateDemoStories(opts.demoCount || 50, rng) : [];
-    let allStories = opts.mergeWithSaved ? demoStories.concat(filteredStories) : demoStories;
+    // --- FIXED: Build master list using real stories as the base, append demo items only when requested ---
+    const demoStories = (opts && opts.includeDemo) ? generateDemoStories(opts.demoCount || 50, rng) : [];
+    let allStories = Array.isArray(filteredStories) ? filteredStories.slice() : [];
+    if (demoStories.length > 0) {
+      allStories = allStories.concat(demoStories);
+    }
+    // If you have other sources to merge (saved, recommended), handle them here when mergeWithSaved === true.
 
     if (allStories.length === 0) {
       storiesListDiv.style.display = 'none';
@@ -2315,74 +2334,69 @@ function renderBrowseStories(selectedCategory = 'All', opts = { includeDemo: fal
       shuffleArray(finalList, rng);
 
       // --- build cards ---
-finalList.forEach(s => {
-    const card = document.createElement('div');
-    card.className = 'story-card';
-    card.dataset.title = s.title || '';
-    card.style.minWidth = '260px';
-    card.style.flex = '0 0 auto';
-    card.style.borderRadius = '14px';
-    card.style.padding = '14px';
-    card.style.boxShadow = '0 6px 16px rgba(0,0,0,0.1)';
-    card.style.display = 'flex';
-    card.style.flexDirection = 'column';
-    card.style.justifyContent = 'space-between';
-    card.style.cursor = 'pointer';
-    card.style.position = 'relative';
-    card.style.flexShrink = '0';
-    card.style.backfaceVisibility = 'hidden';
-    card.style.transition = 'box-shadow 0.25s ease-out';
-    card.style.willChange = 'transform, box-shadow';
+      finalList.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'story-card';
+        card.dataset.title = s.title || '';
+        card.style.minWidth = '260px';
+        card.style.flex = '0 0 auto';
+        card.style.borderRadius = '14px';
+        card.style.padding = '14px';
+        card.style.boxShadow = '0 6px 16px rgba(0,0,0,0.1)';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.justifyContent = 'space-between';
+        card.style.cursor = 'pointer';
+        card.style.position = 'relative';
+        card.style.flexShrink = '0';
+        card.style.backfaceVisibility = 'hidden';
+        card.style.transition = 'box-shadow 0.25s ease-out';
+        card.style.willChange = 'transform, box-shadow';
 
-    // Inner wrapper for scaling & lifting
-    const inner = document.createElement('div');
-    inner.style.display = 'flex';
-    inner.style.flexDirection = 'column';
-    inner.style.justifyContent = 'space-between';
-    inner.style.height = '100%';
-    inner.style.transition = 'transform 0.25s ease-out';
-    inner.style.transformOrigin = 'center center';
-    card.appendChild(inner);
+        // Inner wrapper for scaling & lifting
+        const inner = document.createElement('div');
+        inner.style.display = 'flex';
+        inner.style.flexDirection = 'column';
+        inner.style.justifyContent = 'space-between';
+        inner.style.height = '100%';
+        inner.style.transition = 'transform 0.25s ease-out';
+        inner.style.transformOrigin = 'center center';
+        card.appendChild(inner);
 
-    // State
-    let scaled = false;
+        // State
+        let scaled = false;
 
-    const scaleUp = () => {
-        if (!scaled) {
+        const scaleUp = () => {
+          if (!scaled) {
             inner.style.transform = 'scale(1.15) translateY(-6px)'; // bigger + lift
             card.style.boxShadow = '0 16px 32px rgba(0,0,0,0.35)'; // stronger shadow
             scaled = true;
-        }
-    };
+          }
+        };
 
-    const scaleDown = () => {
-        if (scaled) {
+        const scaleDown = () => {
+          if (scaled) {
             inner.style.transform = 'scale(1) translateY(0)';
             card.style.boxShadow = '0 6px 16px rgba(0,0,0,0.1)';
             scaled = false;
-        }
-    };
+          }
+        };
 
-    // Desktop hover
-    card.addEventListener('mouseenter', scaleUp);
-    card.addEventListener('mouseleave', scaleDown);
+        // Desktop hover
+        card.addEventListener('mouseenter', scaleUp);
+        card.addEventListener('mouseleave', scaleDown);
 
-    // Mobile / touch
-    let touchTimer;
-    card.addEventListener('touchstart', e => {
-        e.stopPropagation();
-        touchTimer = setTimeout(scaleUp, 150);
-    });
-    card.addEventListener('touchend', e => {
-        clearTimeout(touchTimer);
-        scaleDown();
-    });
-    card.addEventListener('touchcancel', scaleDown);
-
-    
-
-
-
+        // Mobile / touch
+        let touchTimer;
+        card.addEventListener('touchstart', e => {
+          e.stopPropagation();
+          touchTimer = setTimeout(scaleUp, 150);
+        });
+        card.addEventListener('touchend', e => {
+          clearTimeout(touchTimer);
+          scaleDown();
+        });
+        card.addEventListener('touchcancel', scaleDown);
 
         if (s.cover) {
           const img = new Image();
@@ -2476,15 +2490,23 @@ finalList.forEach(s => {
       }
     });
 
-    // --- no vertical scroll restoration --- 
+    // Optionally wait for imagesToWait promises if you need to measure/animate after load
+    // Promise.all(imagesToWait).then(()=>{/* images loaded */});
 
   } catch (err) {
     console.warn(err);
   }
 }
 
-// Run demo
-renderBrowseStories('All');
+// Example helper (you likely have your own implementation)
+function openPreviewFullScreen(story) {
+  // placeholder: implement your preview open logic
+  console.log('Open preview for', story.title || story.id);
+}
+
+// Run render (explicitly disable demo cards by default)
+renderBrowseStories('All', { includeDemo: false, demoCount: 0, mergeWithSaved: false });
+
 
 
 
@@ -4108,7 +4130,7 @@ function createRecentCard(r, allSerials) {
 }
 
 // ---------------- MAIN renderBrowseSerials (Full integration) ----------------
-function renderBrowseSerials(list = null, opts = { includeDemo: true, demoCount: 50, mergeWithSaved: true }) {
+function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount: 0, mergeWithSaved: false }) {
   const rng = rngForThisRender();
   try {
     // container
@@ -4403,7 +4425,7 @@ if (recentArr && recentArr.length) {
 
 // ---------------- INITIAL CALL ----------------
 // Auto-run like your previous code (keeps demo on by default)
-renderBrowseSerials(null, { includeDemo: false, demoCount: 50, mergeWithSaved: false });
+renderBrowseSerials(null, { includeDemo: true, demoCount: 50, mergeWithSaved: true });
 
 function openSerialPreview(title) {
   try {
