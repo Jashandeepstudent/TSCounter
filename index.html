@@ -297,49 +297,71 @@
 </style>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-  import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+import { getDatabase, ref, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCgTh6FzKWYCGyRgBmeclvGKxuuFL3L81Y",
-    authDomain: "meurbal.firebaseapp.com",
-    databaseURL: "https://meurbal-default-rtdb.firebaseio.com",
-    projectId: "meurbal",
-    storageBucket: "meurbal.firebasestorage.app",
-    messagingSenderId: "917148598257",
-    appId: "1:917148598257:web:dd42e5d690b56d2ac08e50",
-    measurementId: "G-EHJVB3XC90"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCgTh6FzKWYCGyRgBmeclvGKxuuFL3L81Y",
+  authDomain: "meurbal.firebaseapp.com",
+  databaseURL: "https://meurbal-default-rtdb.firebaseio.com",
+  projectId: "meurbal",
+  storageBucket: "meurbal.firebasestorage.app",
+  messagingSenderId: "917148598257",
+  appId: "1:917148598257:web:dd42e5d690b56d2ac08e50",
+  measurementId: "G-EHJVB3XC90"
+};
 
-  // initialize
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-  // Status box
-  const statusBox = document.createElement('div');
-  statusBox.id = '__firebase_status_box';
-  statusBox.textContent = "🟡 Firebase: Connecting...";
-  statusBox.style.cssText = "position:fixed;right:12px;bottom:12px;padding:8px 12px;border-radius:10px;background:#fff;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,0.12);z-index:99999";
-  document.addEventListener('DOMContentLoaded', ()=> document.body.appendChild(statusBox));
+const statusBox = document.createElement('div');
+statusBox.id = '__firebase_status_box';
+statusBox.textContent = '🟡 Firebase: Connecting...';
+statusBox.style.cssText = 'position:fixed;right:12px;bottom:12px;padding:8px 12px;border-radius:10px;background:#fff;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,0.12);z-index:99999';
+document.addEventListener('DOMContentLoaded', ()=> document.body.appendChild(statusBox));
+function setStatus(text,color){try{statusBox.textContent=text;if(color)statusBox.style.background=color;}catch(e){}}
+get(ref(db,'/')).then(()=>setStatus('🟢 Firebase: Connected','#dcfce7')).catch(()=>setStatus('🔴 Firebase: Offline','#fee2e2'));
 
-  // small helper to set status
-  function setStatus(text, colorBg){
-    try{ statusBox.textContent = text; if(colorBg) statusBox.style.background = colorBg; }catch(e){}
+window._firebase={app,db,ref,set,get,child};
+
+function saveLocal(k,d){localStorage.setItem(k,JSON.stringify(d));}
+function loadLocal(k){try{return JSON.parse(localStorage.getItem(k))||[]}catch{return [];}}
+
+window.storiesData=loadLocal('storiesData');
+window.serialsData=loadLocal('serialsData');
+
+function renderStoriesList(stories){
+ const list=document.getElementById('storiesCards');if(!list)return;
+ list.innerHTML='';
+ stories.forEach(s=>{const c=document.createElement('div');c.className='story-card';c.innerHTML=`<h2>${s.title}</h2><p>${s.genre||''}</p>`;list.appendChild(c);});
+}
+function renderSerialsList(serials){
+ const list=document.getElementById('serialsCards');if(!list)return;
+ list.innerHTML='';
+ serials.forEach(s=>{const c=document.createElement('div');c.className='story-card';c.innerHTML=`<h2>${s.title}</h2><p>${s.genre||''}</p>`;list.appendChild(c);});
+}
+let _storiesRendered = false;
+onValue(ref(db, 'stories'), snap => {
+  if (snap.exists()) {
+    const obj = snap.val();
+    window.storiesData = Object.values(obj);
+    saveLocal('storiesData', window.storiesData);
+    if (!_storiesRendered) {
+
+      _storiesRendered = true;
+    }
+  } else {
+    window.storiesData = [];
+    saveLocal('storiesData', []);
   }
+});
+onValue(ref(db,'serials'),snap=>{if(snap.exists()){const obj=snap.val();window.serialsData=Object.values(obj);saveLocal('serialsData',window.serialsData);renderSerialsList(window.serialsData);}else{window.serialsData=[];saveLocal('serialsData',[]);}});
 
-  // test connectivity by reading root once
-  get(ref(db, '/')).then(()=>{
-    setStatus('🟢 Firebase: Connected', '#dcfce7');
-  }).catch(()=>{
-    setStatus('🔴 Firebase: Offline', '#fee2e2');
-  });
 
-  // expose minimal API for the page to use
-  window._firebase = {
-    app, db, ref, set, get, child
-  };
 </script>
+
 
 
 <body>
@@ -2222,50 +2244,68 @@ function generateDemoStories(count=50, rng) {
 }
 
 // Main render function
-function renderBrowseStories(selectedCategory = 'All', opts = { includeDemo: false, demoCount: 50, mergeWithSaved: false }) {
+
+function renderBrowseStories(
+  selectedCategory = "All",
+  opts = { includeDemo: false, demoCount: 50, mergeWithSaved: false }
+) {
   const rng = rngForStoryRender();
   try {
-    const storiesListDiv = document.getElementById('storiesBrowseList');
-    const cards = document.getElementById('storiesCards');
+    const storiesListDiv = document.getElementById("storiesBrowseList");
+    const cards = document.getElementById("storiesCards");
     if (!cards) return;
 
-    // Ensure main container is vertical and full-width
-    cards.style.display = 'block';
-    cards.style.width = '100%';
-    cards.style.flexWrap = 'wrap';
+    if (storiesListDiv) storiesListDiv.style.display = "block";
+    cards.style.display = "block";
+    cards.style.width = "100%";
+    cards.style.flexWrap = "wrap";
 
-    // Filter only public stories from your real data source (storiesData expected)
-    const publicStories = (storiesData || []).filter(s => s.status === 'Public');
-    let filteredStories = selectedCategory !== 'All'
-      ? publicStories.filter(s => (s.genre || '').toLowerCase() === selectedCategory.toLowerCase())
-      : publicStories;
+    const allStoriesData = window.storiesData || [];
+    const publicStories = allStoriesData.filter(
+      (s) => s.status === "Public" || !s.status
+    );
 
-    // --- FIXED: Build master list using real stories as the base, append demo items only when requested ---
-    const demoStories = (opts && opts.includeDemo) ? generateDemoStories(opts.demoCount || 50, rng) : [];
-    let allStories = Array.isArray(filteredStories) ? filteredStories.slice() : [];
-    if (demoStories.length > 0) {
-      allStories = allStories.concat(demoStories);
-    }
-    // If you have other sources to merge (saved, recommended), handle them here when mergeWithSaved === true.
+    let filteredStories =
+      selectedCategory !== "All"
+        ? publicStories.filter(
+            (s) =>
+              (s.genre || "").toLowerCase() === selectedCategory.toLowerCase()
+          )
+        : publicStories;
 
-    if (allStories.length === 0) {
-      storiesListDiv.style.display = 'none';
+    const demoStories =
+      (!filteredStories.length && opts.includeDemo)
+        ? generateDemoStories(opts.demoCount || 50, rng)
+        : [];
+
+    let allStories = [...filteredStories, ...demoStories];
+    if (!allStories.length) {
+      if (storiesListDiv) storiesListDiv.style.display = "none";
       return;
-    } else {
-      storiesListDiv.style.display = 'block';
     }
 
-    // Save horizontal scroll positions for each genre
     const oldScrollX = {};
-    cards.querySelectorAll('div[data-genre]').forEach(sec => {
+    cards.querySelectorAll("div[data-genre]").forEach((sec) => {
       const g = sec.dataset.genre;
-      const sc = sec.querySelector('.scroll-wrap');
+      const sc = sec.querySelector(".scroll-wrap");
       if (sc) oldScrollX[g] = sc.scrollLeft;
     });
 
-    const genresOrder = ["Action", "Romance", "Comedy", "Fantasy", "Horror", "Tragic", "Thriller","Adventure","Crime","Historic"];
+    const genresOrder = [
+      "Action",
+      "Romance",
+      "Comedy",
+      "Fantasy",
+      "Horror",
+      "Tragic",
+      "Thriller",
+      "Adventure",
+      "Crime",
+      "Historic",
+    ];
+
     const grouped = {};
-    allStories.forEach(s => {
+    allStories.forEach((s) => {
       const g = s.genre ? s.genre.trim() : "Other";
       if (!grouped[g]) grouped[g] = [];
       grouped[g].push(s);
@@ -2273,56 +2313,65 @@ function renderBrowseStories(selectedCategory = 'All', opts = { includeDemo: fal
 
     const allScored = scoredStories(allStories, rng);
     const scoredMap = new Map();
-    allScored.forEach(s => scoredMap.set(s.id ?? s.title, s));
+    allScored.forEach((s) => scoredMap.set(s.id ?? s.title, s));
 
     const imagesToWait = [];
 
-    genresOrder.forEach(genre => {
+    genresOrder.forEach((genre) => {
       const list = grouped[genre];
       if (!list || list.length === 0) return;
 
-      // --- reuse existing section if possible ---
       let section = cards.querySelector(`div[data-genre="${genre}"]`);
       if (!section) {
-        section = document.createElement('div');
+        section = document.createElement("div");
         section.dataset.genre = genre;
-        section.style.display = 'block';
-        section.style.marginBottom = '32px';
+        section.style.display = "block";
+        section.style.marginBottom = "32px";
         cards.appendChild(section);
 
-        const heading = document.createElement('h3');
+        const heading = document.createElement("h3");
         heading.textContent = genre;
-        heading.style.margin = '6px 12px';
-        heading.style.textAlign = 'left';
+        heading.style.margin = "6px 12px";
+        heading.style.textAlign = "left";
         section.appendChild(heading);
       }
 
-      // --- reuse or create scrollWrap ---
-      let scrollWrap = section.querySelector('.scroll-wrap');
+      let scrollWrap = section.querySelector(".scroll-wrap");
       if (!scrollWrap) {
-        scrollWrap = document.createElement('div');
-        scrollWrap.className = 'scroll-wrap';
-        scrollWrap.style.display = 'flex';
-        scrollWrap.style.overflowX = 'auto';
-        scrollWrap.style.gap = '12px';
-        scrollWrap.style.padding = '12px';
-        scrollWrap.style.scrollBehavior = 'smooth';
-        scrollWrap.style.scrollbarWidth = 'thin';
-        scrollWrap.style.flexWrap = 'nowrap';
+        scrollWrap = document.createElement("div");
+        scrollWrap.className = "scroll-wrap";
+        scrollWrap.style.display = "flex";
+        scrollWrap.style.overflowX = "auto";
+        scrollWrap.style.gap = "12px";
+        scrollWrap.style.padding = "12px";
+        scrollWrap.style.scrollBehavior = "smooth";
+        scrollWrap.style.scrollbarWidth = "thin";
+        scrollWrap.style.flexWrap = "nowrap";
         section.appendChild(scrollWrap);
       }
-      // Clear only the cards inside
-      scrollWrap.innerHTML = '';
+      scrollWrap.innerHTML = "";
 
-      const scoredList = list.map(s => scoredMap.get(s.id ?? s.title) || Object.assign({}, s, { __score: rng() * 0.2 }));
+      const scoredList = list.map(
+        (s) =>
+          scoredMap.get(s.id ?? s.title) ||
+          Object.assign({}, s, { __score: rng() * 0.2 })
+      );
       const sorted = scoredList.slice().sort((a, b) => b.__score - a.__score);
 
-      const displayCount = Math.min(sorted.length, Math.max(STORY_ALGO_CONFIG.cardsPerViewport, Math.ceil(sorted.length)));
-      const explorationCount = Math.ceil(displayCount * STORY_ALGO_CONFIG.explorationFraction);
-      const topCandidates = sorted.slice(0, Math.max(0, displayCount - explorationCount));
-      const remaining = sorted.slice(displayCount - explorationCount);
-      const explorationPool = remaining.concat(sorted.slice(displayCount));
-      const explorationPicked = pickStoryExploration(explorationPool, explorationCount, rng);
+      const displayCount = Math.min(
+        sorted.length,
+        Math.max(STORY_ALGO_CONFIG.cardsPerViewport, Math.ceil(sorted.length))
+      );
+      const explorationCount = Math.ceil(
+        displayCount * STORY_ALGO_CONFIG.explorationFraction
+      );
+      const topCandidates = sorted.slice(0, displayCount - explorationCount);
+      const explorationPool = sorted.slice(displayCount - explorationCount);
+      const explorationPicked = pickStoryExploration(
+        explorationPool,
+        explorationCount,
+        rng
+      );
 
       const finalList = [];
       const maxLen = Math.max(topCandidates.length, explorationPicked.length);
@@ -2330,142 +2379,104 @@ function renderBrowseStories(selectedCategory = 'All', opts = { includeDemo: fal
         if (i < topCandidates.length) finalList.push(topCandidates[i]);
         if (i < explorationPicked.length) finalList.push(explorationPicked[i]);
       }
-      if (finalList.length === 0) finalList.push(...sorted.slice(0, displayCount));
+      if (!finalList.length)
+        finalList.push(...sorted.slice(0, displayCount));
       shuffleArray(finalList, rng);
 
-      // --- build cards ---
-      finalList.forEach(s => {
-        const card = document.createElement('div');
-        card.className = 'story-card';
-        card.dataset.title = s.title || '';
-        card.style.minWidth = '260px';
-        card.style.flex = '0 0 auto';
-        card.style.borderRadius = '14px';
-        card.style.padding = '14px';
-        card.style.boxShadow = '0 6px 16px rgba(0,0,0,0.1)';
-        card.style.display = 'flex';
-        card.style.flexDirection = 'column';
-        card.style.justifyContent = 'space-between';
-        card.style.cursor = 'pointer';
-        card.style.position = 'relative';
-        card.style.flexShrink = '0';
-        card.style.backfaceVisibility = 'hidden';
-        card.style.transition = 'box-shadow 0.25s ease-out';
-        card.style.willChange = 'transform, box-shadow';
-
-        // Inner wrapper for scaling & lifting
-        const inner = document.createElement('div');
-        inner.style.display = 'flex';
-        inner.style.flexDirection = 'column';
-        inner.style.justifyContent = 'space-between';
-        inner.style.height = '100%';
-        inner.style.transition = 'transform 0.25s ease-out';
-        inner.style.transformOrigin = 'center center';
-        card.appendChild(inner);
-
-        // State
-        let scaled = false;
-
-        const scaleUp = () => {
-          if (!scaled) {
-            inner.style.transform = 'scale(1.15) translateY(-6px)'; // bigger + lift
-            card.style.boxShadow = '0 16px 32px rgba(0,0,0,0.35)'; // stronger shadow
-            scaled = true;
-          }
-        };
-
-        const scaleDown = () => {
-          if (scaled) {
-            inner.style.transform = 'scale(1) translateY(0)';
-            card.style.boxShadow = '0 6px 16px rgba(0,0,0,0.1)';
-            scaled = false;
-          }
-        };
-
-        // Desktop hover
-        card.addEventListener('mouseenter', scaleUp);
-        card.addEventListener('mouseleave', scaleDown);
-
-        // Mobile / touch
-        let touchTimer;
-        card.addEventListener('touchstart', e => {
-          e.stopPropagation();
-          touchTimer = setTimeout(scaleUp, 150);
-        });
-        card.addEventListener('touchend', e => {
-          clearTimeout(touchTimer);
-          scaleDown();
-        });
-        card.addEventListener('touchcancel', scaleDown);
+      finalList.forEach((s) => {
+        const card = document.createElement("div");
+        card.className = "story-card";
+        card.dataset.title = s.title || "";
+        card.style.minWidth = "260px";
+        card.style.flex = "0 0 auto";
+        card.style.borderRadius = "14px";
+        card.style.padding = "14px";
+        card.style.boxShadow = "0 6px 16px rgba(0,0,0,0.1)";
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.justifyContent = "space-between";
+        card.style.cursor = "pointer";
+        card.style.position = "relative";
+        card.style.transition = "box-shadow 0.25s ease-out";
 
         if (s.cover) {
           const img = new Image();
           img.src = s.cover;
-          imagesToWait.push(new Promise(resolve => { if (img.complete) return resolve(); img.onload = img.onerror = () => resolve(); }));
+          imagesToWait.push(
+            new Promise((res) => {
+              if (img.complete) return res();
+              img.onload = img.onerror = () => res();
+            })
+          );
           card.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url(${s.cover})`;
-          card.style.backgroundSize = 'cover';
-          card.style.backgroundPosition = 'center';
-          card.style.color = '#fff';
+          card.style.backgroundSize = "cover";
+          card.style.backgroundPosition = "center";
+          card.style.color = "#fff";
         } else {
-          let color;
-          switch ((s.genre || '').toLowerCase()) {
-            case 'action': color = '#ff4b4b'; break;
-            case 'romance': color = '#ff6fa8'; break;
-            case 'comedy': color = '#ffd54f'; break;
-            case 'tragic': color = '#4fc3f7'; break;
-            case 'horror': color = '#000'; break;
-            case 'fantasy': color = '#a78bfa'; break;
-            case 'thriller': color = '#A52A2A'; break;
-            case 'crime': color = '#FF0000'; break;
-            case 'adventure': color = '#FF0000'; break;
-            case 'historic': color = '#C0C0C0'; break;
-            default: color = '#888'; break;
-          }
+          const colorMap = {
+            action: "#ff4b4b",
+            romance: "#ff6fa8",
+            comedy: "#ffd54f",
+            tragic: "#4fc3f7",
+            horror: "#000",
+            fantasy: "#a78bfa",
+            thriller: "#A52A2A",
+            crime: "#FF0000",
+            adventure: "#FF0000",
+            historic: "#C0C0C0",
+          };
+          const color = colorMap[(s.genre || "").toLowerCase()] || "#888";
           card.style.background = color;
-          card.style.color = color === '#000' ? '#fff' : '#000';
+          card.style.color = color === "#000" ? "#fff" : "#000";
         }
 
-        const titleEl = document.createElement('h4');
-        titleEl.textContent = s.title || 'Untitled';
-        titleEl.style.margin = '0 0 6px';
-        titleEl.style.fontSize = '17px';
-        titleEl.style.fontWeight = '700';
-        titleEl.style.textShadow = s.cover ? '1px 1px 3px rgba(0,0,0,0.6)' : '';
+        const titleEl = document.createElement("h4");
+        titleEl.textContent = s.title || "Untitled";
+        titleEl.style.margin = "0 0 6px";
+        titleEl.style.fontSize = "17px";
+        titleEl.style.fontWeight = "700";
+        titleEl.style.textShadow = s.cover
+          ? "1px 1px 3px rgba(0,0,0,0.6)"
+          : "";
 
-        const genreEl = document.createElement('p');
-        genreEl.textContent = s.genre || 'Unknown';
-        genreEl.style.margin = '0 0 6px';
-        genreEl.style.fontSize = '13px';
-        genreEl.style.fontWeight = '600';
-        genreEl.style.opacity = '0.9';
-        genreEl.style.textShadow = s.cover ? '1px 1px 2px rgba(0,0,0,0.4)' : '';
+        const genreEl = document.createElement("p");
+        genreEl.textContent = s.genre || "Unknown";
+        genreEl.style.margin = "0 0 6px";
+        genreEl.style.fontSize = "13px";
+        genreEl.style.fontWeight = "600";
+        genreEl.style.opacity = "0.9";
+        genreEl.style.textShadow = s.cover
+          ? "1px 1px 2px rgba(0,0,0,0.4)"
+          : "";
 
-        const desc = document.createElement('p');
-        desc.textContent = s.description || '';
-        desc.style.margin = '4px 0 8px';
-        desc.style.fontSize = '14px';
-        desc.style.lineHeight = '1.4';
-        desc.style.overflow = 'hidden';
-        desc.style.display = '-webkit-box';
-        desc.style.webkitLineClamp = '3';
-        desc.style.webkitBoxOrient = 'vertical';
-        desc.style.textShadow = s.cover ? '1px 1px 2px rgba(0,0,0,0.4)' : '';
+        const desc = document.createElement("p");
+        desc.textContent = s.description || "";
+        desc.style.margin = "4px 0 8px";
+        desc.style.fontSize = "14px";
+        desc.style.lineHeight = "1.4";
+        desc.style.overflow = "hidden";
+        desc.style.display = "-webkit-box";
+        desc.style.webkitLineClamp = "3";
+        desc.style.webkitBoxOrient = "vertical";
+        desc.style.textShadow = s.cover
+          ? "1px 1px 2px rgba(0,0,0,0.4)"
+          : "";
 
-        const bottomRow = document.createElement('div');
-        bottomRow.style.display = 'flex';
-        bottomRow.style.justifyContent = 'space-between';
-        bottomRow.style.alignItems = 'center';
-        bottomRow.style.marginTop = 'auto';
+        const bottomRow = document.createElement("div");
+        bottomRow.style.display = "flex";
+        bottomRow.style.justifyContent = "space-between";
+        bottomRow.style.alignItems = "center";
+        bottomRow.style.marginTop = "auto";
 
-        const reads = document.createElement('div');
-        reads.textContent = '👁️ ' + (s.reads || 0);
-        reads.style.fontSize = '13px';
-        reads.style.fontWeight = '600';
+        const reads = document.createElement("div");
+        reads.textContent = "👁️ " + (s.reads || 0);
+        reads.style.fontSize = "13px";
+        reads.style.fontWeight = "600";
 
-        const readBtn = document.createElement('button');
-        readBtn.className = 'btn btn-primary';
-        readBtn.textContent = 'Read';
-        readBtn.addEventListener('click', e => {
+        const readBtn = document.createElement("button");
+        readBtn.className = "btn btn-primary";
+        readBtn.textContent = "Read";
+        readBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           openPreviewFullScreen(s);
         });
@@ -2481,22 +2492,18 @@ function renderBrowseStories(selectedCategory = 'All', opts = { includeDemo: fal
         scrollWrap.appendChild(card);
       });
 
-      // Restore horizontal scroll
       if (oldScrollX[genre] !== undefined) {
         const prevBehavior = scrollWrap.style.scrollBehavior;
-        scrollWrap.style.scrollBehavior = 'auto';
+        scrollWrap.style.scrollBehavior = "auto";
         scrollWrap.scrollLeft = oldScrollX[genre];
-        scrollWrap.style.scrollBehavior = prevBehavior || 'smooth';
+        scrollWrap.style.scrollBehavior = prevBehavior || "smooth";
       }
     });
-
-    // Optionally wait for imagesToWait promises if you need to measure/animate after load
-    // Promise.all(imagesToWait).then(()=>{/* images loaded */});
-
   } catch (err) {
-    console.warn(err);
+    console.warn("renderBrowseStories error:", err);
   }
 }
+
 
 // Example helper (you likely have your own implementation)
 function openPreviewFullScreen(story) {
@@ -3701,8 +3708,6 @@ try{
 }catch(e){ /* ignore if not accessible */ }
 
 // expose a function to render serials browse listing
-// Tunable parameters
-// ------------------ CONFIG ------------------
 const ALGO_CONFIG = {
   popularityWeight: 0.5,
   recencyWeight: 0.25,
@@ -4130,10 +4135,10 @@ function createRecentCard(r, allSerials) {
 }
 
 // ---------------- MAIN renderBrowseSerials (Full integration) ----------------
+
 function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount: 0, mergeWithSaved: false }) {
   const rng = rngForThisRender();
   try {
-    // container
     let container = document.getElementById('serialsBrowseList');
     if (!container) {
       const parent = document.getElementById('serialCategoriesPage') || document.body;
@@ -4141,37 +4146,46 @@ function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount
       container.id = 'serialsBrowseList';
       container.style.maxWidth = '980px';
       container.style.margin = '18px auto';
-      container.style.display = 'none';
       parent.appendChild(container);
     }
 
-    // load serials (saved or passed in)
-    const saved = Array.isArray(list)
-      ? list
-      : (typeof loadSavedSerials === 'function'
-          ? loadSavedSerials()
-          : JSON.parse(localStorage.getItem('saved_serials_v1') || '[]'));
-    const demo = opts.includeDemo ? generateDemoSerials(opts.demoCount || 50, rng) : [];
-    const serialsRaw = saved && saved.length && opts.mergeWithSaved ? demo.concat(saved) : saved && saved.length ? saved : demo;
+    // --- Load base serials ---
+    let baseSerials = Array.isArray(list) ? list.slice() : null;
+    if (!Array.isArray(baseSerials)) {
+      if (typeof loadSavedSerials === 'function') {
+        try { baseSerials = loadSavedSerials() || []; } catch (e) { baseSerials = []; }
+      } else {
+        try { baseSerials = JSON.parse(localStorage.getItem('saved_serials_v1') || '[]') || []; } catch (e) { baseSerials = []; }
+      }
+    }
+    if (!Array.isArray(baseSerials)) baseSerials = [];
+
+    // --- Remove duplicates by id/title ---
+    const seen = new Set();
+    baseSerials = baseSerials.filter(s => {
+      const key = (s.id || s.slug || s.title || '').trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // --- Demo serials if needed ---
+    const demo = (opts && opts.includeDemo) ? generateDemoSerials(opts.demoCount || 30, rng) : [];
+    let serialsRaw = baseSerials.slice();
+    if (demo.length > 0) {
+      if (opts && opts.mergeWithSaved) serialsRaw = serialsRaw.concat(demo);
+      else if (!serialsRaw.length) serialsRaw = demo.slice();
+    }
+
     if (!serialsRaw || !serialsRaw.length) {
       container.style.display = 'none';
       return;
     }
 
-    // preserve vertical scroll
-    const oldScrollY = window.scrollY || document.documentElement.scrollTop;
+    container.innerHTML = '';
+    container.style.display = 'block';
 
-    // preserve horizontal per-genre scrolls
-    const oldScrollX = {};
-    container.querySelectorAll('div[data-genre]').forEach(sec => {
-      const g = sec.dataset.genre;
-      const sc = sec.querySelector('.scroll-wrap');
-      if (sc) oldScrollX[g] = sc.scrollLeft;
-    });
-    // also trending scroll
-    const oldTrendingScroll = (container.querySelector('.trending-wrap') || {}).scrollLeft;
-
-    // grouping
+    // --- Group by genre ---
     const genresOrder = ['Action','Romance','Comedy','Fantasy','Horror','Tragic','Thriller','Adventure','Crime','Historic'];
     const grouped = {};
     serialsRaw.forEach(s => {
@@ -4180,90 +4194,140 @@ function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount
       grouped[g].push(s);
     });
 
-    // trending update before scoring
-    const trendingState = updateTrendingStateForSerials(serialsRaw);
-
-    // scoring
+    // --- Score serials ---
     const allScored = scoredSerialsWithNormalization(serialsRaw, rng);
     const scoredMap = new Map();
     allScored.forEach(s => {
-      const key = s.id ?? s.slug ?? s.title ?? JSON.stringify({ title: s.title, createdAt: s.createdAt });
+      const key = s.id ?? s.slug ?? s.title;
       scoredMap.set(key, s);
     });
 
-    // Clear container
-    container.innerHTML = '';
-    container.style.display = 'block';
     const imagesToWait = [];
 
-    // ---- TRENDING SECTION (above genres) ----
-// ---- TRENDING SECTION (top) ----
-const trendingSerials = getTrendingSerialsFromState(allScored, trendingState);
-if (trendingSerials && trendingSerials.length) {
-  trendingSerials.sort((a,b) => {
-    const ida = a.id ?? a.slug ?? a.title;
-    const idb = b.id ?? b.slug ?? b.title;
-    const ra = (trendingState.ids[ida]?.recent || 0) + (a.__score || 0);
-    const rb = (trendingState.ids[idb]?.recent || 0) + (b.__score || 0);
-    return rb - ra;
-  });
+    // --- TRENDING SECTION ---
+    const trendingState = updateTrendingStateForSerials(serialsRaw);
+    const trendingSerials = getTrendingSerialsFromState(allScored, trendingState);
+    if (trendingSerials && trendingSerials.length) {
+      const trendingSection = document.createElement('div');
+      trendingSection.dataset.genre = 'Trending';
+      trendingSection.style.marginBottom = '28px';
+      container.appendChild(trendingSection);
 
-  const trendingSection = document.createElement('div');
-  trendingSection.dataset.genre = 'Trending';
-  trendingSection.style.display = 'block';
-  trendingSection.style.marginBottom = '28px';
-  container.appendChild(trendingSection);
+      const heading = document.createElement('h2');
+      heading.textContent = '🔥 Trending';
+      heading.style.margin = '6px 12px';
+      heading.style.textAlign = 'left';
+      trendingSection.appendChild(heading);
 
-  const heading = document.createElement('h2');
-  heading.textContent = '🔥 Trending';
-  heading.style.margin = '6px 12px';
-  heading.style.textAlign = 'left';
-  trendingSection.appendChild(heading);
+      const scrollWrap = document.createElement('div');
+      scrollWrap.className = 'scroll-wrap trending-wrap';
+      scrollWrap.style.display = 'flex';
+      scrollWrap.style.overflowX = 'auto';
+      scrollWrap.style.gap = '12px';
+      scrollWrap.style.padding = '12px';
+      scrollWrap.style.scrollBehavior = 'smooth';
+      scrollWrap.style.scrollSnapType = 'x mandatory';
+      scrollWrap.style.scrollbarWidth = 'thin';
 
-  const scrollWrap = document.createElement('div');
-  scrollWrap.className = 'scroll-wrap trending-wrap';
-  scrollWrap.style.display = 'flex';
-  scrollWrap.style.overflowX = 'auto';
-  scrollWrap.style.gap = '12px';
-  scrollWrap.style.padding = '12px';
-  scrollWrap.style.scrollBehavior = 'smooth';
-  scrollWrap.style.scrollSnapType = 'x mandatory';
-  scrollWrap.style.scrollbarWidth = 'thin';
+      trendingSerials.forEach(s => {
+        const card = createSerialCard(s, imagesToWait, serialsRaw);
+        card.style.minWidth = '300px';
+        card.style.height = '400px';
+        scrollWrap.appendChild(card);
+      });
 
-  scrollWrap.addEventListener('wheel', e => {
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-      scrollWrap.scrollLeft += e.deltaY;
-      e.preventDefault();
+      trendingSection.appendChild(scrollWrap);
+      container.__trendingIds = new Set(trendingSerials.map(s => s.id ?? s.slug ?? s.title));
+    } else {
+      container.__trendingIds = new Set();
     }
-  }, { passive: false });
 
-  const trendingIds = new Set(trendingSerials.map(s => s.id ?? s.slug ?? s.title));
+    // --- GENRE SECTIONS ---
+    genresOrder.forEach(genre => {
+      const list = grouped[genre];
+      if (!list || !list.length) return;
 
-  trendingSerials.forEach(s => {
-    const card = createSerialCard(s, imagesToWait, serialsRaw);
-    card.style.minWidth = '300px';
-    card.style.height = '400px';
-    scrollWrap.appendChild(card);
-  });
+      const trendingIds = container.__trendingIds || new Set();
+      const filtered = list.filter(s => !trendingIds.has(s.id ?? s.slug ?? s.title));
+      if (!filtered.length) return;
 
-  trendingSection.appendChild(scrollWrap);
+      const scoredList = filtered.map(s => {
+        const key = s.id ?? s.slug ?? s.title;
+        return scoredMap.get(key) || Object.assign({}, s, { __score: rng() * 0.2 });
+      });
+      const sorted = scoredList.slice().sort((a, b) => (b.__score || 0) - (a.__score || 0));
 
-  if (oldTrendingScroll !== undefined) {
-    const prevBehavior = scrollWrap.style.scrollBehavior;
-    scrollWrap.style.scrollBehavior = 'auto';
-    scrollWrap.scrollLeft = oldTrendingScroll;
-    scrollWrap.style.scrollBehavior = prevBehavior || 'smooth';
+      const section = document.createElement('div');
+      section.dataset.genre = genre;
+      section.style.marginBottom = '32px';
+
+      const heading = document.createElement('h3');
+      heading.textContent = genre;
+      heading.style.margin = '6px 12px';
+      heading.style.textAlign = 'left';
+      section.appendChild(heading);
+
+      const scrollWrap = document.createElement('div');
+      scrollWrap.className = 'scroll-wrap';
+      scrollWrap.style.display = 'flex';
+      scrollWrap.style.overflowX = 'auto';
+      scrollWrap.style.gap = '12px';
+      scrollWrap.style.padding = '12px';
+      scrollWrap.style.scrollBehavior = 'smooth';
+      scrollWrap.style.scrollSnapType = 'x mandatory';
+      scrollWrap.style.scrollbarWidth = 'thin';
+      section.appendChild(scrollWrap);
+
+      sorted.forEach(s => {
+        const card = createSerialCard(s, imagesToWait, serialsRaw);
+        scrollWrap.appendChild(card);
+      });
+
+      container.appendChild(section);
+    });
+
+    // --- RECENTLY READ SECTION ---
+    const recentArr = loadRecentlyRead();
+    if (recentArr && recentArr.length) {
+      const recentSection = document.createElement('div');
+      recentSection.dataset.section = 'recently-read';
+      recentSection.style.marginTop = '18px';
+      recentSection.style.marginBottom = '28px';
+      container.appendChild(recentSection);
+
+      const heading = document.createElement('h3');
+      heading.textContent = '📚 Recently Read';
+      heading.style.margin = '6px 12px';
+      heading.style.textAlign = 'left';
+      recentSection.appendChild(heading);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'recent-wrap';
+      wrap.style.display = 'flex';
+      wrap.style.overflowX = 'auto';
+      wrap.style.gap = '12px';
+      wrap.style.padding = '12px';
+      wrap.style.scrollSnapType = 'x mandatory';
+      wrap.style.scrollbarWidth = 'thin';
+
+      recentArr.forEach(r => {
+        const card = createSerialCard(r, imagesToWait, serialsRaw);
+        card.style.minWidth = '300px';
+        card.style.height = '400px';
+        wrap.appendChild(card);
+      });
+
+      recentSection.appendChild(wrap);
+    }
+  } catch (e) {
+    console.warn('renderBrowseSerials error:', e);
   }
-
-  container.__trendingIds = trendingIds;
-} else {
+}
+ else {
   container.__trendingIds = new Set();
 }
 
 // ---- GENRE SECTIONS (middle) ----
-// ... your existing genre section code here ...
-
-// ---- RECENTLY READ (bottom) ----
 // ---- GENRE SECTIONS ----
 genresOrder.forEach(genre => {
   const rawList = grouped[genre];
@@ -4424,8 +4488,7 @@ if (recentArr && recentArr.length) {
 }
 
 // ---------------- INITIAL CALL ----------------
-// Auto-run like your previous code (keeps demo on by default)
-renderBrowseSerials(null, { includeDemo: true, demoCount: 50, mergeWithSaved: true });
+renderBrowseSerials(null, { includeDemo: false });
 
 function openSerialPreview(title) {
   try {
@@ -6205,6 +6268,47 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 });
 </script>
 
+
+<script>
+// --- Ensure browse buttons always show updated Firebase data ---
+document.addEventListener("DOMContentLoaded", () => {
+  const browseStoriesBtn = document.getElementById("browseStoriesBtn");
+  const browseSerialsBtn = document.getElementById("browseSerialsBtn");
+
+  if (browseStoriesBtn) {
+    browseStoriesBtn.addEventListener("click", async () => {
+      try {
+        const { db, ref, get, child } = window._firebase;
+        const snap = await get(child(ref(db), "stories"));
+        if (snap.exists()) {
+          window.storiesData = Object.values(snap.val());
+        }
+        renderStoriesList(window.storiesData || []);
+      } catch (e) {
+        console.warn("Failed to load stories for browse:", e);
+        renderStoriesList(window.storiesData || []);
+      }
+    });
+  }
+
+  if (browseSerialsBtn) {
+    browseSerialsBtn.addEventListener("click", async () => {
+      try {
+        const { db, ref, get, child } = window._firebase;
+        const snap = await get(child(ref(db), "serials"));
+        if (snap.exists()) {
+          window.serialsData = Object.values(snap.val());
+        }
+        renderSerialsList(window.serialsData || []);
+      } catch (e) {
+        console.warn("Failed to load serials for browse:", e);
+        renderSerialsList(window.serialsData || []);
+      }
+    });
+  }
+});
+</script>
+
 </body>
 </html>
 
@@ -6290,10 +6394,92 @@ function initRealSearch(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initRealSearch);
 else initRealSearch();
 </script>
-<!-- ===== START: Firebase sync + bottom status box (paste before </body>) ===== -->
+<!-- ===== START: Firebase sync + bottom status box (paste before 
+<script>
+// --- Ensure browse buttons always show updated Firebase data ---
+document.addEventListener("DOMContentLoaded", () => {
+  const browseStoriesBtn = document.getElementById("browseStoriesBtn");
+  const browseSerialsBtn = document.getElementById("browseSerialsBtn");
+
+  if (browseStoriesBtn) {
+    browseStoriesBtn.addEventListener("click", async () => {
+      try {
+        const { db, ref, get, child } = window._firebase;
+        const snap = await get(child(ref(db), "stories"));
+        if (snap.exists()) {
+          window.storiesData = Object.values(snap.val());
+        }
+        renderStoriesList(window.storiesData || []);
+      } catch (e) {
+        console.warn("Failed to load stories for browse:", e);
+        renderStoriesList(window.storiesData || []);
+      }
+    });
+  }
+
+  if (browseSerialsBtn) {
+    browseSerialsBtn.addEventListener("click", async () => {
+      try {
+        const { db, ref, get, child } = window._firebase;
+        const snap = await get(child(ref(db), "serials"));
+        if (snap.exists()) {
+          window.serialsData = Object.values(snap.val());
+        }
+        renderSerialsList(window.serialsData || []);
+      } catch (e) {
+        console.warn("Failed to load serials for browse:", e);
+        renderSerialsList(window.serialsData || []);
+      }
+    });
+  }
+});
+</script>
+
+</body>) ===== -->
 <script>
 /* FIREBASE SYNC INTEGRATION
-   - Paste this just before </body>
+   - Paste this just before 
+<script>
+// --- Ensure browse buttons always show updated Firebase data ---
+document.addEventListener("DOMContentLoaded", () => {
+  const browseStoriesBtn = document.getElementById("browseStoriesBtn");
+  const browseSerialsBtn = document.getElementById("browseSerialsBtn");
+
+  if (browseStoriesBtn) {
+    browseStoriesBtn.addEventListener("click", async () => {
+      try {
+        const { db, ref, get, child } = window._firebase;
+        const snap = await get(child(ref(db), "stories"));
+        if (snap.exists()) {
+          window.storiesData = Object.values(snap.val());
+        }
+        renderStoriesList(window.storiesData || []);
+      } catch (e) {
+        console.warn("Failed to load stories for browse:", e);
+        renderStoriesList(window.storiesData || []);
+      }
+    });
+  }
+
+  if (browseSerialsBtn) {
+    browseSerialsBtn.addEventListener("click", async () => {
+      try {
+        const { db, ref, get, child } = window._firebase;
+        const snap = await get(child(ref(db), "serials"));
+        if (snap.exists()) {
+          window.serialsData = Object.values(snap.val());
+        }
+        renderSerialsList(window.serialsData || []);
+      } catch (e) {
+        console.warn("Failed to load serials for browse:", e);
+        renderSerialsList(window.serialsData || []);
+      }
+    });
+  }
+});
+</script>
+
+</body>
    - Uses your provided firebaseConfig (Realtime Database)
    - Will: init Firebase, load on start, sync periodically and on key events,
      and show a black status box at bottom with saving/loading states.
@@ -6395,6 +6581,47 @@ ensureFirebase(async ()=>{
 <!-- ===== END FIXED BLOCK ===== -->
 
 <!-- ===== END: Firebase sync + bottom status box ===== -->
+
+
+<script>
+// --- Ensure browse buttons always show updated Firebase data ---
+document.addEventListener("DOMContentLoaded", () => {
+  const browseStoriesBtn = document.getElementById("browseStoriesBtn");
+  const browseSerialsBtn = document.getElementById("browseSerialsBtn");
+
+  if (browseStoriesBtn) {
+    browseStoriesBtn.addEventListener("click", async () => {
+      try {
+        const { db, ref, get, child } = window._firebase;
+        const snap = await get(child(ref(db), "stories"));
+        if (snap.exists()) {
+          window.storiesData = Object.values(snap.val());
+        }
+        renderStoriesList(window.storiesData || []);
+      } catch (e) {
+        console.warn("Failed to load stories for browse:", e);
+        renderStoriesList(window.storiesData || []);
+      }
+    });
+  }
+
+  if (browseSerialsBtn) {
+    browseSerialsBtn.addEventListener("click", async () => {
+      try {
+        const { db, ref, get, child } = window._firebase;
+        const snap = await get(child(ref(db), "serials"));
+        if (snap.exists()) {
+          window.serialsData = Object.values(snap.val());
+        }
+        renderSerialsList(window.serialsData || []);
+      } catch (e) {
+        console.warn("Failed to load serials for browse:", e);
+        renderSerialsList(window.serialsData || []);
+      }
+    });
+  }
+});
+</script>
 
 </body>
 </html>
