@@ -347,9 +347,9 @@ onValue(ref(db, 'stories'), snap => {
   if (snap.exists()) {
     const obj = snap.val();
     window.storiesData = Object.values(obj);
-    saveLocal('storiesData', window.storiesData);
-    if (!_storiesRendered) {
 
+    if (!_storiesRendered) {
+   
       _storiesRendered = true;
     }
   } else {
@@ -358,7 +358,6 @@ onValue(ref(db, 'stories'), snap => {
   }
 });
 onValue(ref(db,'serials'),snap=>{if(snap.exists()){const obj=snap.val();window.serialsData=Object.values(obj);saveLocal('serialsData',window.serialsData);renderSerialsList(window.serialsData);}else{window.serialsData=[];saveLocal('serialsData',[]);}});
-
 
 </script>
 
@@ -4149,10 +4148,14 @@ function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount
       parent.appendChild(container);
     }
 
-    // --- Load base serials ---
+    // --- Load base serials (prefer Firebase live data) ---
     let baseSerials = Array.isArray(list) ? list.slice() : null;
-    if (!Array.isArray(baseSerials)) {
-      if (typeof loadSavedSerials === 'function') {
+    if (!Array.isArray(baseSerials) || !baseSerials.length) {
+      // Prefer real-time Firebase data if available
+      if (Array.isArray(window.serialsData) && window.serialsData.length) {
+        console.log(`📡 Using ${window.serialsData.length} serials from Firebase`);
+        baseSerials = window.serialsData.slice();
+      } else if (typeof loadSavedSerials === 'function') {
         try { baseSerials = loadSavedSerials() || []; } catch (e) { baseSerials = []; }
       } else {
         try { baseSerials = JSON.parse(localStorage.getItem('saved_serials_v1') || '[]') || []; } catch (e) { baseSerials = []; }
@@ -4179,6 +4182,7 @@ function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount
 
     if (!serialsRaw || !serialsRaw.length) {
       container.style.display = 'none';
+      console.warn('⚠️ No serials to display in Browse Serials');
       return;
     }
 
@@ -4286,210 +4290,11 @@ function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount
       container.appendChild(section);
     });
 
-    // --- RECENTLY READ SECTION ---
-    const recentArr = loadRecentlyRead();
-    if (recentArr && recentArr.length) {
-      const recentSection = document.createElement('div');
-      recentSection.dataset.section = 'recently-read';
-      recentSection.style.marginTop = '18px';
-      recentSection.style.marginBottom = '28px';
-      container.appendChild(recentSection);
-
-      const heading = document.createElement('h3');
-      heading.textContent = '📚 Recently Read';
-      heading.style.margin = '6px 12px';
-      heading.style.textAlign = 'left';
-      recentSection.appendChild(heading);
-
-      const wrap = document.createElement('div');
-      wrap.className = 'recent-wrap';
-      wrap.style.display = 'flex';
-      wrap.style.overflowX = 'auto';
-      wrap.style.gap = '12px';
-      wrap.style.padding = '12px';
-      wrap.style.scrollSnapType = 'x mandatory';
-      wrap.style.scrollbarWidth = 'thin';
-
-      recentArr.forEach(r => {
-        const card = createSerialCard(r, imagesToWait, serialsRaw);
-        card.style.minWidth = '300px';
-        card.style.height = '400px';
-        wrap.appendChild(card);
-      });
-
-      recentSection.appendChild(wrap);
-    }
+    console.log(`✅ Rendered ${serialsRaw.length} serials in Browse Serials`);
   } catch (e) {
     console.warn('renderBrowseSerials error:', e);
   }
 }
- else {
-  container.__trendingIds = new Set();
-}
-
-// ---- GENRE SECTIONS (middle) ----
-// ---- GENRE SECTIONS ----
-genresOrder.forEach(genre => {
-  const rawList = grouped[genre];
-  if (!rawList || !rawList.length) return;
-
-  // filter out anything already in trending (dedupe)
-  const trendingIds = container.__trendingIds || new Set();
-  const filtered = rawList.filter(s => !trendingIds.has(s.id ?? s.slug ?? s.title));
-
-  if (!filtered.length) return;
-
-  const scoredList = filtered.map(s => {
-    const key = s.id ?? s.slug ?? s.title ?? JSON.stringify({ title: s.title, createdAt: s.createdAt });
-    return scoredMap.get(key) || Object.assign({}, s, { __score: rng() * 0.2 });
-  });
-
-  const sorted = scoredList.slice().sort((a,b) => (b.__score || 0) - (a.__score || 0));
-
-  const displayCount = Math.min(sorted.length, Math.max(ALGO_CONFIG.cardsPerViewport, Math.ceil(sorted.length)));
-  const explorationCount = Math.ceil(displayCount * ALGO_CONFIG.explorationFraction);
-  const topCandidates = sorted.slice(0, Math.max(0, displayCount - explorationCount));
-  const remaining = sorted.slice(displayCount - explorationCount);
-  const explorationPool = remaining.concat(sorted.slice(displayCount));
-  const explorationPicked = pickExploration(explorationPool, explorationCount, rng);
-
-  const finalList = [];
-  const maxLen = Math.max(topCandidates.length, explorationPicked.length);
-  for (let i = 0; i < maxLen; i++) {
-    if (i < topCandidates.length) finalList.push(topCandidates[i]);
-    if (i < explorationPicked.length) finalList.push(explorationPicked[i]);
-  }
-  if (finalList.length === 0) finalList.push(...sorted.slice(0, displayCount));
-  shuffleArray(finalList, rng);
-
-  const section = document.createElement('div');
-  section.dataset.genre = genre;
-  section.style.marginBottom = '32px';
-
-  const heading = document.createElement('h3');
-  heading.textContent = genre;
-  heading.style.margin = '6px 12px';
-  heading.style.textAlign = 'left';
-  section.appendChild(heading);
-
-  const scrollWrap = document.createElement('div');
-  scrollWrap.className = 'scroll-wrap';
-  scrollWrap.style.display = 'flex';
-  scrollWrap.style.overflowX = 'auto';
-  scrollWrap.style.gap = '12px';
-  scrollWrap.style.padding = '12px';
-  scrollWrap.style.scrollBehavior = 'smooth';
-  scrollWrap.style.scrollSnapType = 'x mandatory';
-  scrollWrap.style.scrollbarWidth = 'thin';
-
-  scrollWrap.addEventListener('wheel', e => {
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-      scrollWrap.scrollLeft += e.deltaY;
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  finalList.forEach(s => {
-    const card = createSerialCard(s, imagesToWait, serialsRaw);
-    scrollWrap.appendChild(card);
-  });
-
-  section.appendChild(scrollWrap);
-  container.appendChild(section);
-
-  // restore scroll if any
-  if (oldScrollX[genre] !== undefined) {
-    const prevBehavior = scrollWrap.style.scrollBehavior;
-    scrollWrap.style.scrollBehavior = 'auto';
-    scrollWrap.scrollLeft = oldScrollX[genre];
-    scrollWrap.style.scrollBehavior = prevBehavior || 'smooth';
-  }
-});
-
-const recentArr = loadRecentlyRead();
-if (recentArr && recentArr.length) {
-  let recentSection = container.querySelector('[data-section="recently-read"]');
-  if (!recentSection) {
-    recentSection = document.createElement('div');
-    recentSection.dataset.section = 'recently-read';
-    recentSection.style.marginTop = '18px';
-    recentSection.style.marginBottom = '28px';
-    container.appendChild(recentSection);
-
-    const heading = document.createElement('h3');
-    heading.textContent = '📚 Recently Read';
-    heading.style.margin = '6px 12px';
-    heading.style.textAlign = 'left';
-    recentSection.appendChild(heading);
-
-    const wrap = document.createElement('div');
-    wrap.className = 'recent-wrap';
-    wrap.style.display = 'flex';
-    wrap.style.flexWrap = 'nowrap';
-    wrap.style.overflowX = 'auto';
-    wrap.style.overflowY = 'hidden';
-    wrap.style.gap = '12px';
-    wrap.style.padding = '12px';
-    wrap.style.webkitOverflowScrolling = 'touch';
-    wrap.style.scrollSnapType = 'x mandatory';
-    wrap.style.scrollbarWidth = 'thin';
-
-    wrap.addEventListener('wheel', e => {
-      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-        wrap.scrollLeft += e.deltaY;
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    // Save scroll continuously
-    wrap.addEventListener('scroll', () => {
-      localStorage.setItem('recentlyReadScrollX', wrap.scrollLeft);
-    });
-
-    recentSection.appendChild(wrap);
-  }
-
-  const wrap = recentSection.querySelector('.recent-wrap');
-
-  // Add missing cards only
-  recentArr.forEach(r => {
-    if (![...wrap.children].some(c => c.dataset.title === r.title)) {
-      const card = createSerialCard(r, imagesToWait, serialsRaw);
-      card.style.minWidth = '300px';
-      card.style.height = '400px';
-      card.style.flex = '0 0 auto';
-
-      card.querySelectorAll('img').forEach(img => {
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'cover';
-      });
-
-      wrap.appendChild(card);
-    }
-  });
-
-  // Restore scroll instantly (no auto or smooth)
-  const savedScroll = parseFloat(localStorage.getItem('recentlyReadScrollX') || '0');
-  requestAnimationFrame(() => {
-    wrap.scrollLeft = savedScroll; // <-- instant jump
-  });
-}
-
-
-    // restore vertical scroll
-    window.scrollTo({ top: oldScrollY, behavior: 'auto' });
-
-    // optional: wait for images to settle (not awaited here, but we tracked imagesToWait if you want)
-    // Promise.all(imagesToWait).then(()=>{/* images loaded */}).catch(()=>{});
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-// ---------------- INITIAL CALL ----------------
-renderBrowseSerials(null, { includeDemo: false });
-
 function openSerialPreview(title) {
   try {
     const VOTES_STORE_KEY = 'global_votes_v1';
@@ -6309,6 +6114,235 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
+
+<!-- CLEAN SERIALS VIEW INJECTION: replaces broken browse serials behavior -->
+<style>
+  /* clean serials view styles (keeps existing theme) */
+  #cleanSerialsPage { padding:20px; min-height:100vh; background:var(--bg); display:none; }
+  #cleanSerialsHeader{display:flex;align-items:center;justify-content:space-between;max-width:980px;margin:0 auto 12px;gap:12px}
+  #cleanSerialsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;max-width:980px;margin:12px auto;padding:12px}
+  .clean-serial-card{background:#fff;border-radius:12px;padding:18px;box-shadow:var(--shadow);min-height:140px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform .18s}
+  .clean-serial-card:hover{transform:translateY(-6px)}
+  .serial-meta{color:var(--muted);font-size:13px}
+  #cleanSerialsTop{display:flex;gap:12px;align-items:center;width:100%;max-width:980px;margin:0 auto}
+  #cleanSerialsCount{font-weight:700}
+  #cleanSerialsSearch{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px}
+  #cleanSerialsBack{position:fixed;left:14px;bottom:14px}
+</style>
+
+<div id="cleanSerialsPage" aria-hidden="true">
+  <div id="cleanSerialsHeader">
+    <div>
+      <h2 style="margin:0">Browse Serials</h2>
+      <div class="muted" id="cleanSerialsCount">Loading...</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="cleanSerialsSearch" placeholder="Search serials..." />
+      <button id="cleanSerialsRefreshBtn" class="btn btn-secondary">Refresh</button>
+    </div>
+  </div>
+
+  <div id="cleanSerialsGrid" aria-live="polite" role="list"></div>
+  <button class="back-btn" id="cleanSerialsBack">← Back</button>
+</div>
+
+<script>
+
+(function(){
+  function waitForFirebaseInit() {
+    if (window._firebase && window._firebase.db && window._firebase.onValue && window._firebase.ref) {
+      console.log('🟢 Firebase ready — initializing clean serials view');
+      try{
+        // Execute the original serials script now that Firebase is ready
+        (async function(){
+          // ensure helper functions exist globally for legacy callers
+            window.renderSerialsList = function(serials){
+              // maintain compatibility - forward to clean renderer if available
+              if(window._renderCleanSerials) return window._renderCleanSerials(serials);
+              const list = document.getElementById('serialsCards');
+              if(!list) return;
+              list.innerHTML = '';
+              (serials||[]).forEach(s=>{
+                const c=document.createElement('div');
+                c.className='story-card';
+                c.innerHTML=`<h2>${s.title}</h2><p>${s.genre||''}</p>`;
+                list.appendChild(c);
+              });
+            };
+          
+            // internal render for clean view
+            window._renderCleanSerials = function(serials){
+              const grid = document.getElementById('cleanSerialsGrid');
+              const count = document.getElementById('cleanSerialsCount');
+              if(!grid) return;
+              grid.innerHTML = '';
+              serials = serials || [];
+              count.textContent = `${serials.length} serial${serials.length===1?'':'s'} loaded`;
+              serials.forEach(s=>{
+                const card = document.createElement('div');
+                card.className='clean-serial-card';
+                const desc = s.description ? `<div class="muted" style="margin-top:6px">${s.description.slice(0,140)}</div>` : '';
+                card.innerHTML = `<div><h4 style="margin:0">${s.title}</h4><div class="serial-meta">${s.genre||''}</div>${desc}</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary btn-small">Open</button></div>`;
+                card.addEventListener('click', ()=>{
+                  // open editor or reader if exists - try to find serial by title in window.serialsData
+                  const idx = (window.serialsData||[]).findIndex(x=> (x.title||'').trim() === (s.title||'').trim());
+                  if(idx>=0){
+                    // open the first episode if present using existing createEditorPage if available
+                    try{
+                      if(typeof createEditorPage === 'function'){
+                        const ser = window.serialsData[idx];
+                        const epIndex = ser.episodes && ser.episodes.length ? 0 : null;
+                        createEditorPage(epIndex!=null? ser.episodes[epIndex].title : ser.title, ser.genre, epIndex!=null? ser.episodes[epIndex].description : ser.description, { isEdit:true, editType:'serial', index: idx, episodeIndex: epIndex });
+                        return;
+                      }
+                    }catch(e){ console.warn('Open serial: editor open failed', e); }
+                  }
+                  alert('Open serial: editor not available in this context.');
+                });
+                grid.appendChild(card);
+              });
+            };
+          
+            // show/hide helpers
+            function openCleanSerialsPage(){
+              // hide other main pages (same logic as your app)
+              const pages = ['welcomePage','categoriesPage','serialCategoriesPage','dashboardPage','slidesPage','storyFormPage','profileFormPage'];
+              pages.forEach(id=>{
+                const el = document.getElementById(id);
+                if(el) el.classList.add('hidden');
+              });
+              // show our clean view
+              const clean = document.getElementById('cleanSerialsPage');
+              if(clean){ clean.classList.remove('hidden'); clean.setAttribute('aria-hidden','false'); }
+              // attempt to render cached data immediately
+              if(window.serialsData && window.serialsData.length){
+                window._renderCleanSerials(window.serialsData);
+                console.log(`ℹ️ Showing ${window.serialsData.length} cached serials from localStorage`);
+              }
+            }
+          
+            function closeCleanSerialsPage(){
+              const clean = document.getElementById('cleanSerialsPage');
+              if(clean){ clean.classList.add('hidden'); clean.setAttribute('aria-hidden','true'); }
+              // show welcome page as fallback
+              const welcome = document.getElementById('welcomePage');
+              if(welcome) welcome.classList.remove('hidden');
+            }
+          
+            // wire up buttons (override old handlers safely)
+            const browseBtn = document.getElementById('browseSerialsBtn');
+            if(browseBtn){
+              browseBtn.removeEventListener && browseBtn.removeEventListener('click', ()=>{});
+              browseBtn.addEventListener('click', (e)=>{
+                e.preventDefault();
+                openCleanSerialsPage();
+              });
+            }
+            const backBtn = document.getElementById('cleanSerialsBack');
+            if(backBtn) backBtn.addEventListener('click', ()=>{ closeCleanSerialsPage(); });
+          
+            const refreshBtn = document.getElementById('cleanSerialsRefreshBtn');
+            if(refreshBtn) refreshBtn.addEventListener('click', ()=>{ fetchAndRenderSerials(true); });
+          
+            // search filtering
+            const searchInput = document.getElementById('cleanSerialsSearch');
+            if(searchInput) searchInput.addEventListener('input', (e)=>{
+              const q = (e.target.value||'').toLowerCase().trim();
+              const filtered = (window.serialsData||[]).filter(s=>{
+                return (s.title||'').toLowerCase().includes(q) || (s.genre||'').toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q);
+              });
+              window._renderCleanSerials(filtered);
+            });
+          
+            // Firebase real-time listener & initial fetch
+            async function fetchAndRenderSerials(forceReload) {
+    try {
+      // Use Firebase SDK directly (no window._firebase dependency)
+      import("https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js").then(({ getDatabase, ref, onValue }) => {
+        const db = getDatabase();
+        // attach live listener
+        if (window._cleanSerialsListenerAttached && !forceReload) return;
+        window._cleanSerialsListenerAttached = true;
+
+        onValue(ref(db, 'serials'), snap => {
+          if (snap.exists()) {
+            const obj = snap.val();
+            window.serialsData = Object.values(obj);
+            try { localStorage.setItem('serialsData', JSON.stringify(window.serialsData)); } catch (e) {}
+            window._renderCleanSerials(window.serialsData);
+            console.log(`✅ Loaded ${window.serialsData.length} serials from Firebase`);
+          } else {
+            window.serialsData = [];
+            try { localStorage.setItem('serialsData', JSON.stringify([])); } catch (e) {}
+            window._renderCleanSerials([]);
+            console.log('⚠️ No serials found in Firebase');
+          }
+        });
+      }).catch(err => console.error('Firebase import failed:', err));
+    } catch (err) {
+      console.error('Failed to load serials for browse:', err);
+    }
+    
+                // attach live listener (debounce multiple attachments)
+                if(window._cleanSerialsListenerAttached && !forceReload) return;
+                window._cleanSerialsListenerAttached = true;
+          
+                onValue(ref(db, 'serials'), snap => {
+                  if(snap.exists()){
+                    const obj = snap.val();
+                    window.serialsData = Object.values(obj);
+                    try{ localStorage.setItem('serialsData', JSON.stringify(window.serialsData)); }catch(e){}
+                    window._renderCleanSerials(window.serialsData);
+                    console.log(`✅ Loaded ${window.serialsData.length} serials from Firebase`);
+                  } else {
+                    window.serialsData = [];
+                    try{ localStorage.setItem('serialsData', JSON.stringify([])); }catch(e){}
+                    window._renderCleanSerials([]);
+                    console.log('⚠️ No serials found in Firebase');
+                  }
+                });
+              }catch(err){
+                console.error('Failed to load serials for browse:', err);
+              }
+            }
+          
+            // attempt to initialize listener on DOMContentLoaded (or immediately if already)
+            if(document.readyState === 'complete' || document.readyState === 'interactive'){
+              fetchAndRenderSerials(false);
+            } else {
+              document.addEventListener('DOMContentLoaded', ()=> fetchAndRenderSerials(false));
+            }
+          
+            // show cached data on load (fallback)
+            try{
+              const cached = JSON.parse(localStorage.getItem('serialsData') || 'null');
+              if(cached && Array.isArray(cached) && cached.length){
+                window.serialsData = cached;
+                console.log('ℹ️ Loaded serials from localStorage cache:', window.serialsData.length);
+              }
+            }catch(e){}
+          
+          })();
+        })();
+      }catch(e){
+        console.error('Error running serials initializer after Firebase ready', e);
+      }
+      return;
+    }
+    // still not ready, wait and retry
+    console.log('⏳ Waiting for Firebase initialization...');
+    setTimeout(waitForFirebaseInit, 300);
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    waitForFirebaseInit();
+  } else {
+    document.addEventListener('DOMContentLoaded', waitForFirebaseInit);
+  }
+})();
+</script>
+<!-- END INJECTION -->
+
 </body>
 </html>
 
@@ -6435,6 +6469,211 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
+
+<!-- CLEAN SERIALS VIEW INJECTION: replaces broken browse serials behavior -->
+<style>
+  /* clean serials view styles (keeps existing theme) */
+  #cleanSerialsPage { padding:20px; min-height:100vh; background:var(--bg); display:none; }
+  #cleanSerialsHeader{display:flex;align-items:center;justify-content:space-between;max-width:980px;margin:0 auto 12px;gap:12px}
+  #cleanSerialsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;max-width:980px;margin:12px auto;padding:12px}
+  .clean-serial-card{background:#fff;border-radius:12px;padding:18px;box-shadow:var(--shadow);min-height:140px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform .18s}
+  .clean-serial-card:hover{transform:translateY(-6px)}
+  .serial-meta{color:var(--muted);font-size:13px}
+  #cleanSerialsTop{display:flex;gap:12px;align-items:center;width:100%;max-width:980px;margin:0 auto}
+  #cleanSerialsCount{font-weight:700}
+  #cleanSerialsSearch{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px}
+  #cleanSerialsBack{position:fixed;left:14px;bottom:14px}
+</style>
+
+<div id="cleanSerialsPage" aria-hidden="true">
+  <div id="cleanSerialsHeader">
+    <div>
+      <h2 style="margin:0">Browse Serials</h2>
+      <div class="muted" id="cleanSerialsCount">Loading...</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="cleanSerialsSearch" placeholder="Search serials..." />
+      <button id="cleanSerialsRefreshBtn" class="btn btn-secondary">Refresh</button>
+    </div>
+  </div>
+
+  <div id="cleanSerialsGrid" aria-live="polite" role="list"></div>
+  <button class="back-btn" id="cleanSerialsBack">← Back</button>
+</div>
+
+<script>
+(function(){
+  // ensure helper functions exist globally for legacy callers
+  window.renderSerialsList = function(serials){
+    // maintain compatibility - forward to clean renderer if available
+    if(window._renderCleanSerials) return window._renderCleanSerials(serials);
+    const list = document.getElementById('serialsCards');
+    if(!list) return;
+    list.innerHTML = '';
+    (serials||[]).forEach(s=>{
+      const c=document.createElement('div');
+      c.className='story-card';
+      c.innerHTML=`<h2>${s.title}</h2><p>${s.genre||''}</p>`;
+      list.appendChild(c);
+    });
+  };
+
+  // internal render for clean view
+  window._renderCleanSerials = function(serials){
+    const grid = document.getElementById('cleanSerialsGrid');
+    const count = document.getElementById('cleanSerialsCount');
+    if(!grid) return;
+    grid.innerHTML = '';
+    serials = serials || [];
+    count.textContent = `${serials.length} serial${serials.length===1?'':'s'} loaded`;
+    serials.forEach(s=>{
+      const card = document.createElement('div');
+      card.className='clean-serial-card';
+      const desc = s.description ? `<div class="muted" style="margin-top:6px">${s.description.slice(0,140)}</div>` : '';
+      card.innerHTML = `<div><h4 style="margin:0">${s.title}</h4><div class="serial-meta">${s.genre||''}</div>${desc}</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary btn-small">Open</button></div>`;
+      card.addEventListener('click', ()=>{
+        // open editor or reader if exists - try to find serial by title in window.serialsData
+        const idx = (window.serialsData||[]).findIndex(x=> (x.title||'').trim() === (s.title||'').trim());
+        if(idx>=0){
+          // open the first episode if present using existing createEditorPage if available
+          try{
+            if(typeof createEditorPage === 'function'){
+              const ser = window.serialsData[idx];
+              const epIndex = ser.episodes && ser.episodes.length ? 0 : null;
+              createEditorPage(epIndex!=null? ser.episodes[epIndex].title : ser.title, ser.genre, epIndex!=null? ser.episodes[epIndex].description : ser.description, { isEdit:true, editType:'serial', index: idx, episodeIndex: epIndex });
+              return;
+            }
+          }catch(e){ console.warn('Open serial: editor open failed', e); }
+        }
+        alert('Open serial: editor not available in this context.');
+      });
+      grid.appendChild(card);
+    });
+  };
+
+  // show/hide helpers
+  function openCleanSerialsPage(){
+    // hide other main pages (same logic as your app)
+    const pages = ['welcomePage','categoriesPage','serialCategoriesPage','dashboardPage','slidesPage','storyFormPage','profileFormPage'];
+    pages.forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.classList.add('hidden');
+    });
+    // show our clean view
+    const clean = document.getElementById('cleanSerialsPage');
+    if(clean){ clean.classList.remove('hidden'); clean.setAttribute('aria-hidden','false'); }
+    // attempt to render cached data immediately
+    if(window.serialsData && window.serialsData.length){
+      window._renderCleanSerials(window.serialsData);
+      console.log(`ℹ️ Showing ${window.serialsData.length} cached serials from localStorage`);
+    }
+  }
+
+  function closeCleanSerialsPage(){
+    const clean = document.getElementById('cleanSerialsPage');
+    if(clean){ clean.classList.add('hidden'); clean.setAttribute('aria-hidden','true'); }
+    // show welcome page as fallback
+    const welcome = document.getElementById('welcomePage');
+    if(welcome) welcome.classList.remove('hidden');
+  }
+
+  // wire up buttons (override old handlers safely)
+  const browseBtn = document.getElementById('browseSerialsBtn');
+  if(browseBtn){
+    browseBtn.removeEventListener && browseBtn.removeEventListener('click', ()=>{});
+    browseBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      openCleanSerialsPage();
+    });
+  }
+  const backBtn = document.getElementById('cleanSerialsBack');
+  if(backBtn) backBtn.addEventListener('click', ()=>{ closeCleanSerialsPage(); });
+
+  const refreshBtn = document.getElementById('cleanSerialsRefreshBtn');
+  if(refreshBtn) refreshBtn.addEventListener('click', ()=>{ fetchAndRenderSerials(true); });
+
+  // search filtering
+  const searchInput = document.getElementById('cleanSerialsSearch');
+  if(searchInput) searchInput.addEventListener('input', (e)=>{
+    const q = (e.target.value||'').toLowerCase().trim();
+    const filtered = (window.serialsData||[]).filter(s=>{
+      return (s.title||'').toLowerCase().includes(q) || (s.genre||'').toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q);
+    });
+    window._renderCleanSerials(filtered);
+  });
+
+  // Firebase real-time listener & initial fetch
+  async function fetchAndRenderSerials(forceReload) {
+    try {
+      // Use Firebase SDK directly (no window._firebase dependency)
+      import("https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js").then(({ getDatabase, ref, onValue }) => {
+        const db = getDatabase();
+        // attach live listener
+        if (window._cleanSerialsListenerAttached && !forceReload) return;
+        window._cleanSerialsListenerAttached = true;
+
+        onValue(ref(db, 'serials'), snap => {
+          if (snap.exists()) {
+            const obj = snap.val();
+            window.serialsData = Object.values(obj);
+            try { localStorage.setItem('serialsData', JSON.stringify(window.serialsData)); } catch (e) {}
+            window._renderCleanSerials(window.serialsData);
+            console.log(`✅ Loaded ${window.serialsData.length} serials from Firebase`);
+          } else {
+            window.serialsData = [];
+            try { localStorage.setItem('serialsData', JSON.stringify([])); } catch (e) {}
+            window._renderCleanSerials([]);
+            console.log('⚠️ No serials found in Firebase');
+          }
+        });
+      }).catch(err => console.error('Firebase import failed:', err));
+    } catch (err) {
+      console.error('Failed to load serials for browse:', err);
+    }
+    
+      // attach live listener (debounce multiple attachments)
+      if(window._cleanSerialsListenerAttached && !forceReload) return;
+      window._cleanSerialsListenerAttached = true;
+
+      onValue(ref(db, 'serials'), snap => {
+        if(snap.exists()){
+          const obj = snap.val();
+          window.serialsData = Object.values(obj);
+          try{ localStorage.setItem('serialsData', JSON.stringify(window.serialsData)); }catch(e){}
+          window._renderCleanSerials(window.serialsData);
+          console.log(`✅ Loaded ${window.serialsData.length} serials from Firebase`);
+        } else {
+          window.serialsData = [];
+          try{ localStorage.setItem('serialsData', JSON.stringify([])); }catch(e){}
+          window._renderCleanSerials([]);
+          console.log('⚠️ No serials found in Firebase');
+        }
+      });
+    }catch(err){
+      console.error('Failed to load serials for browse:', err);
+    }
+  }
+
+  // attempt to initialize listener on DOMContentLoaded (or immediately if already)
+  if(document.readyState === 'complete' || document.readyState === 'interactive'){
+    fetchAndRenderSerials(false);
+  } else {
+    document.addEventListener('DOMContentLoaded', ()=> fetchAndRenderSerials(false));
+  }
+
+  // show cached data on load (fallback)
+  try{
+    const cached = JSON.parse(localStorage.getItem('serialsData') || 'null');
+    if(cached && Array.isArray(cached) && cached.length){
+      window.serialsData = cached;
+      console.log('ℹ️ Loaded serials from localStorage cache:', window.serialsData.length);
+    }
+  }catch(e){}
+
+})();
+</script>
+<!-- END INJECTION -->
+
 </body>) ===== -->
 <script>
 /* FIREBASE SYNC INTEGRATION
@@ -6478,6 +6717,211 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 </script>
+
+
+<!-- CLEAN SERIALS VIEW INJECTION: replaces broken browse serials behavior -->
+<style>
+  /* clean serials view styles (keeps existing theme) */
+  #cleanSerialsPage { padding:20px; min-height:100vh; background:var(--bg); display:none; }
+  #cleanSerialsHeader{display:flex;align-items:center;justify-content:space-between;max-width:980px;margin:0 auto 12px;gap:12px}
+  #cleanSerialsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;max-width:980px;margin:12px auto;padding:12px}
+  .clean-serial-card{background:#fff;border-radius:12px;padding:18px;box-shadow:var(--shadow);min-height:140px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform .18s}
+  .clean-serial-card:hover{transform:translateY(-6px)}
+  .serial-meta{color:var(--muted);font-size:13px}
+  #cleanSerialsTop{display:flex;gap:12px;align-items:center;width:100%;max-width:980px;margin:0 auto}
+  #cleanSerialsCount{font-weight:700}
+  #cleanSerialsSearch{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px}
+  #cleanSerialsBack{position:fixed;left:14px;bottom:14px}
+</style>
+
+<div id="cleanSerialsPage" aria-hidden="true">
+  <div id="cleanSerialsHeader">
+    <div>
+      <h2 style="margin:0">Browse Serials</h2>
+      <div class="muted" id="cleanSerialsCount">Loading...</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="cleanSerialsSearch" placeholder="Search serials..." />
+      <button id="cleanSerialsRefreshBtn" class="btn btn-secondary">Refresh</button>
+    </div>
+  </div>
+
+  <div id="cleanSerialsGrid" aria-live="polite" role="list"></div>
+  <button class="back-btn" id="cleanSerialsBack">← Back</button>
+</div>
+
+<script>
+(function(){
+  // ensure helper functions exist globally for legacy callers
+  window.renderSerialsList = function(serials){
+    // maintain compatibility - forward to clean renderer if available
+    if(window._renderCleanSerials) return window._renderCleanSerials(serials);
+    const list = document.getElementById('serialsCards');
+    if(!list) return;
+    list.innerHTML = '';
+    (serials||[]).forEach(s=>{
+      const c=document.createElement('div');
+      c.className='story-card';
+      c.innerHTML=`<h2>${s.title}</h2><p>${s.genre||''}</p>`;
+      list.appendChild(c);
+    });
+  };
+
+  // internal render for clean view
+  window._renderCleanSerials = function(serials){
+    const grid = document.getElementById('cleanSerialsGrid');
+    const count = document.getElementById('cleanSerialsCount');
+    if(!grid) return;
+    grid.innerHTML = '';
+    serials = serials || [];
+    count.textContent = `${serials.length} serial${serials.length===1?'':'s'} loaded`;
+    serials.forEach(s=>{
+      const card = document.createElement('div');
+      card.className='clean-serial-card';
+      const desc = s.description ? `<div class="muted" style="margin-top:6px">${s.description.slice(0,140)}</div>` : '';
+      card.innerHTML = `<div><h4 style="margin:0">${s.title}</h4><div class="serial-meta">${s.genre||''}</div>${desc}</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary btn-small">Open</button></div>`;
+      card.addEventListener('click', ()=>{
+        // open editor or reader if exists - try to find serial by title in window.serialsData
+        const idx = (window.serialsData||[]).findIndex(x=> (x.title||'').trim() === (s.title||'').trim());
+        if(idx>=0){
+          // open the first episode if present using existing createEditorPage if available
+          try{
+            if(typeof createEditorPage === 'function'){
+              const ser = window.serialsData[idx];
+              const epIndex = ser.episodes && ser.episodes.length ? 0 : null;
+              createEditorPage(epIndex!=null? ser.episodes[epIndex].title : ser.title, ser.genre, epIndex!=null? ser.episodes[epIndex].description : ser.description, { isEdit:true, editType:'serial', index: idx, episodeIndex: epIndex });
+              return;
+            }
+          }catch(e){ console.warn('Open serial: editor open failed', e); }
+        }
+        alert('Open serial: editor not available in this context.');
+      });
+      grid.appendChild(card);
+    });
+  };
+
+  // show/hide helpers
+  function openCleanSerialsPage(){
+    // hide other main pages (same logic as your app)
+    const pages = ['welcomePage','categoriesPage','serialCategoriesPage','dashboardPage','slidesPage','storyFormPage','profileFormPage'];
+    pages.forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.classList.add('hidden');
+    });
+    // show our clean view
+    const clean = document.getElementById('cleanSerialsPage');
+    if(clean){ clean.classList.remove('hidden'); clean.setAttribute('aria-hidden','false'); }
+    // attempt to render cached data immediately
+    if(window.serialsData && window.serialsData.length){
+      window._renderCleanSerials(window.serialsData);
+      console.log(`ℹ️ Showing ${window.serialsData.length} cached serials from localStorage`);
+    }
+  }
+
+  function closeCleanSerialsPage(){
+    const clean = document.getElementById('cleanSerialsPage');
+    if(clean){ clean.classList.add('hidden'); clean.setAttribute('aria-hidden','true'); }
+    // show welcome page as fallback
+    const welcome = document.getElementById('welcomePage');
+    if(welcome) welcome.classList.remove('hidden');
+  }
+
+  // wire up buttons (override old handlers safely)
+  const browseBtn = document.getElementById('browseSerialsBtn');
+  if(browseBtn){
+    browseBtn.removeEventListener && browseBtn.removeEventListener('click', ()=>{});
+    browseBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      openCleanSerialsPage();
+    });
+  }
+  const backBtn = document.getElementById('cleanSerialsBack');
+  if(backBtn) backBtn.addEventListener('click', ()=>{ closeCleanSerialsPage(); });
+
+  const refreshBtn = document.getElementById('cleanSerialsRefreshBtn');
+  if(refreshBtn) refreshBtn.addEventListener('click', ()=>{ fetchAndRenderSerials(true); });
+
+  // search filtering
+  const searchInput = document.getElementById('cleanSerialsSearch');
+  if(searchInput) searchInput.addEventListener('input', (e)=>{
+    const q = (e.target.value||'').toLowerCase().trim();
+    const filtered = (window.serialsData||[]).filter(s=>{
+      return (s.title||'').toLowerCase().includes(q) || (s.genre||'').toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q);
+    });
+    window._renderCleanSerials(filtered);
+  });
+
+  // Firebase real-time listener & initial fetch
+  async function fetchAndRenderSerials(forceReload) {
+    try {
+      // Use Firebase SDK directly (no window._firebase dependency)
+      import("https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js").then(({ getDatabase, ref, onValue }) => {
+        const db = getDatabase();
+        // attach live listener
+        if (window._cleanSerialsListenerAttached && !forceReload) return;
+        window._cleanSerialsListenerAttached = true;
+
+        onValue(ref(db, 'serials'), snap => {
+          if (snap.exists()) {
+            const obj = snap.val();
+            window.serialsData = Object.values(obj);
+            try { localStorage.setItem('serialsData', JSON.stringify(window.serialsData)); } catch (e) {}
+            window._renderCleanSerials(window.serialsData);
+            console.log(`✅ Loaded ${window.serialsData.length} serials from Firebase`);
+          } else {
+            window.serialsData = [];
+            try { localStorage.setItem('serialsData', JSON.stringify([])); } catch (e) {}
+            window._renderCleanSerials([]);
+            console.log('⚠️ No serials found in Firebase');
+          }
+        });
+      }).catch(err => console.error('Firebase import failed:', err));
+    } catch (err) {
+      console.error('Failed to load serials for browse:', err);
+    }
+    
+      // attach live listener (debounce multiple attachments)
+      if(window._cleanSerialsListenerAttached && !forceReload) return;
+      window._cleanSerialsListenerAttached = true;
+
+      onValue(ref(db, 'serials'), snap => {
+        if(snap.exists()){
+          const obj = snap.val();
+          window.serialsData = Object.values(obj);
+          try{ localStorage.setItem('serialsData', JSON.stringify(window.serialsData)); }catch(e){}
+          window._renderCleanSerials(window.serialsData);
+          console.log(`✅ Loaded ${window.serialsData.length} serials from Firebase`);
+        } else {
+          window.serialsData = [];
+          try{ localStorage.setItem('serialsData', JSON.stringify([])); }catch(e){}
+          window._renderCleanSerials([]);
+          console.log('⚠️ No serials found in Firebase');
+        }
+      });
+    }catch(err){
+      console.error('Failed to load serials for browse:', err);
+    }
+  }
+
+  // attempt to initialize listener on DOMContentLoaded (or immediately if already)
+  if(document.readyState === 'complete' || document.readyState === 'interactive'){
+    fetchAndRenderSerials(false);
+  } else {
+    document.addEventListener('DOMContentLoaded', ()=> fetchAndRenderSerials(false));
+  }
+
+  // show cached data on load (fallback)
+  try{
+    const cached = JSON.parse(localStorage.getItem('serialsData') || 'null');
+    if(cached && Array.isArray(cached) && cached.length){
+      window.serialsData = cached;
+      console.log('ℹ️ Loaded serials from localStorage cache:', window.serialsData.length);
+    }
+  }catch(e){}
+
+})();
+</script>
+<!-- END INJECTION -->
 
 </body>
    - Uses your provided firebaseConfig (Realtime Database)
@@ -6622,6 +7066,211 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 </script>
+
+
+<!-- CLEAN SERIALS VIEW INJECTION: replaces broken browse serials behavior -->
+<style>
+  /* clean serials view styles (keeps existing theme) */
+  #cleanSerialsPage { padding:20px; min-height:100vh; background:var(--bg); display:none; }
+  #cleanSerialsHeader{display:flex;align-items:center;justify-content:space-between;max-width:980px;margin:0 auto 12px;gap:12px}
+  #cleanSerialsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;max-width:980px;margin:12px auto;padding:12px}
+  .clean-serial-card{background:#fff;border-radius:12px;padding:18px;box-shadow:var(--shadow);min-height:140px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform .18s}
+  .clean-serial-card:hover{transform:translateY(-6px)}
+  .serial-meta{color:var(--muted);font-size:13px}
+  #cleanSerialsTop{display:flex;gap:12px;align-items:center;width:100%;max-width:980px;margin:0 auto}
+  #cleanSerialsCount{font-weight:700}
+  #cleanSerialsSearch{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px}
+  #cleanSerialsBack{position:fixed;left:14px;bottom:14px}
+</style>
+
+<div id="cleanSerialsPage" aria-hidden="true">
+  <div id="cleanSerialsHeader">
+    <div>
+      <h2 style="margin:0">Browse Serials</h2>
+      <div class="muted" id="cleanSerialsCount">Loading...</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="cleanSerialsSearch" placeholder="Search serials..." />
+      <button id="cleanSerialsRefreshBtn" class="btn btn-secondary">Refresh</button>
+    </div>
+  </div>
+
+  <div id="cleanSerialsGrid" aria-live="polite" role="list"></div>
+  <button class="back-btn" id="cleanSerialsBack">← Back</button>
+</div>
+
+<script>
+(function(){
+  // ensure helper functions exist globally for legacy callers
+  window.renderSerialsList = function(serials){
+    // maintain compatibility - forward to clean renderer if available
+    if(window._renderCleanSerials) return window._renderCleanSerials(serials);
+    const list = document.getElementById('serialsCards');
+    if(!list) return;
+    list.innerHTML = '';
+    (serials||[]).forEach(s=>{
+      const c=document.createElement('div');
+      c.className='story-card';
+      c.innerHTML=`<h2>${s.title}</h2><p>${s.genre||''}</p>`;
+      list.appendChild(c);
+    });
+  };
+
+  // internal render for clean view
+  window._renderCleanSerials = function(serials){
+    const grid = document.getElementById('cleanSerialsGrid');
+    const count = document.getElementById('cleanSerialsCount');
+    if(!grid) return;
+    grid.innerHTML = '';
+    serials = serials || [];
+    count.textContent = `${serials.length} serial${serials.length===1?'':'s'} loaded`;
+    serials.forEach(s=>{
+      const card = document.createElement('div');
+      card.className='clean-serial-card';
+      const desc = s.description ? `<div class="muted" style="margin-top:6px">${s.description.slice(0,140)}</div>` : '';
+      card.innerHTML = `<div><h4 style="margin:0">${s.title}</h4><div class="serial-meta">${s.genre||''}</div>${desc}</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary btn-small">Open</button></div>`;
+      card.addEventListener('click', ()=>{
+        // open editor or reader if exists - try to find serial by title in window.serialsData
+        const idx = (window.serialsData||[]).findIndex(x=> (x.title||'').trim() === (s.title||'').trim());
+        if(idx>=0){
+          // open the first episode if present using existing createEditorPage if available
+          try{
+            if(typeof createEditorPage === 'function'){
+              const ser = window.serialsData[idx];
+              const epIndex = ser.episodes && ser.episodes.length ? 0 : null;
+              createEditorPage(epIndex!=null? ser.episodes[epIndex].title : ser.title, ser.genre, epIndex!=null? ser.episodes[epIndex].description : ser.description, { isEdit:true, editType:'serial', index: idx, episodeIndex: epIndex });
+              return;
+            }
+          }catch(e){ console.warn('Open serial: editor open failed', e); }
+        }
+        alert('Open serial: editor not available in this context.');
+      });
+      grid.appendChild(card);
+    });
+  };
+
+  // show/hide helpers
+  function openCleanSerialsPage(){
+    // hide other main pages (same logic as your app)
+    const pages = ['welcomePage','categoriesPage','serialCategoriesPage','dashboardPage','slidesPage','storyFormPage','profileFormPage'];
+    pages.forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.classList.add('hidden');
+    });
+    // show our clean view
+    const clean = document.getElementById('cleanSerialsPage');
+    if(clean){ clean.classList.remove('hidden'); clean.setAttribute('aria-hidden','false'); }
+    // attempt to render cached data immediately
+    if(window.serialsData && window.serialsData.length){
+      window._renderCleanSerials(window.serialsData);
+      console.log(`ℹ️ Showing ${window.serialsData.length} cached serials from localStorage`);
+    }
+  }
+
+  function closeCleanSerialsPage(){
+    const clean = document.getElementById('cleanSerialsPage');
+    if(clean){ clean.classList.add('hidden'); clean.setAttribute('aria-hidden','true'); }
+    // show welcome page as fallback
+    const welcome = document.getElementById('welcomePage');
+    if(welcome) welcome.classList.remove('hidden');
+  }
+
+  // wire up buttons (override old handlers safely)
+  const browseBtn = document.getElementById('browseSerialsBtn');
+  if(browseBtn){
+    browseBtn.removeEventListener && browseBtn.removeEventListener('click', ()=>{});
+    browseBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      openCleanSerialsPage();
+    });
+  }
+  const backBtn = document.getElementById('cleanSerialsBack');
+  if(backBtn) backBtn.addEventListener('click', ()=>{ closeCleanSerialsPage(); });
+
+  const refreshBtn = document.getElementById('cleanSerialsRefreshBtn');
+  if(refreshBtn) refreshBtn.addEventListener('click', ()=>{ fetchAndRenderSerials(true); });
+
+  // search filtering
+  const searchInput = document.getElementById('cleanSerialsSearch');
+  if(searchInput) searchInput.addEventListener('input', (e)=>{
+    const q = (e.target.value||'').toLowerCase().trim();
+    const filtered = (window.serialsData||[]).filter(s=>{
+      return (s.title||'').toLowerCase().includes(q) || (s.genre||'').toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q);
+    });
+    window._renderCleanSerials(filtered);
+  });
+
+  // Firebase real-time listener & initial fetch
+  async function fetchAndRenderSerials(forceReload) {
+    try {
+      // Use Firebase SDK directly (no window._firebase dependency)
+      import("https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js").then(({ getDatabase, ref, onValue }) => {
+        const db = getDatabase();
+        // attach live listener
+        if (window._cleanSerialsListenerAttached && !forceReload) return;
+        window._cleanSerialsListenerAttached = true;
+
+        onValue(ref(db, 'serials'), snap => {
+          if (snap.exists()) {
+            const obj = snap.val();
+            window.serialsData = Object.values(obj);
+            try { localStorage.setItem('serialsData', JSON.stringify(window.serialsData)); } catch (e) {}
+            window._renderCleanSerials(window.serialsData);
+            console.log(`✅ Loaded ${window.serialsData.length} serials from Firebase`);
+          } else {
+            window.serialsData = [];
+            try { localStorage.setItem('serialsData', JSON.stringify([])); } catch (e) {}
+            window._renderCleanSerials([]);
+            console.log('⚠️ No serials found in Firebase');
+          }
+        });
+      }).catch(err => console.error('Firebase import failed:', err));
+    } catch (err) {
+      console.error('Failed to load serials for browse:', err);
+    }
+    
+      // attach live listener (debounce multiple attachments)
+      if(window._cleanSerialsListenerAttached && !forceReload) return;
+      window._cleanSerialsListenerAttached = true;
+
+      onValue(ref(db, 'serials'), snap => {
+        if(snap.exists()){
+          const obj = snap.val();
+          window.serialsData = Object.values(obj);
+          try{ localStorage.setItem('serialsData', JSON.stringify(window.serialsData)); }catch(e){}
+          window._renderCleanSerials(window.serialsData);
+          console.log(`✅ Loaded ${window.serialsData.length} serials from Firebase`);
+        } else {
+          window.serialsData = [];
+          try{ localStorage.setItem('serialsData', JSON.stringify([])); }catch(e){}
+          window._renderCleanSerials([]);
+          console.log('⚠️ No serials found in Firebase');
+        }
+      });
+    }catch(err){
+      console.error('Failed to load serials for browse:', err);
+    }
+  }
+
+  // attempt to initialize listener on DOMContentLoaded (or immediately if already)
+  if(document.readyState === 'complete' || document.readyState === 'interactive'){
+    fetchAndRenderSerials(false);
+  } else {
+    document.addEventListener('DOMContentLoaded', ()=> fetchAndRenderSerials(false));
+  }
+
+  // show cached data on load (fallback)
+  try{
+    const cached = JSON.parse(localStorage.getItem('serialsData') || 'null');
+    if(cached && Array.isArray(cached) && cached.length){
+      window.serialsData = cached;
+      console.log('ℹ️ Loaded serials from localStorage cache:', window.serialsData.length);
+    }
+  }catch(e){}
+
+})();
+</script>
+<!-- END INJECTION -->
 
 </body>
 </html>
