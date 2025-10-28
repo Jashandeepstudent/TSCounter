@@ -193,7 +193,16 @@
     .categories-grid::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:6px}
     #categoriesBackBtn, #serialCategoriesBackBtn{position:fixed;left:14px;bottom:14px}
 
-
+#previewFull {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  display: block !important;
+}
+#previewFull.hidden {
+  display: none !important;
+}
+5:00 PM 10/27/2025
 
     /* full-width story cards */
    #storiesCards {
@@ -331,25 +340,114 @@ function loadLocal(k){try{return JSON.parse(localStorage.getItem(k))||[]}catch{r
 
 window.storiesData=loadLocal('storiesData');
 window.serialsData=loadLocal('serialsData');
+window.serialSlots = loadLocal('serialSlots') || []; // ✅ Load serial slots locally
 
 function renderStoriesList(stories){
  const list=document.getElementById('storiesCards');if(!list)return;
  list.innerHTML='';
  stories.forEach(s=>{const c=document.createElement('div');c.className='story-card';c.innerHTML=`<h2>${s.title}</h2><p>${s.genre||''}</p>`;list.appendChild(c);});
 }
-function renderSerialsList(serials){
- const list=document.getElementById('serialsCards');if(!list)return;
- list.innerHTML='';
- serials.forEach(s=>{const c=document.createElement('div');c.className='story-card';c.innerHTML=`<h2>${s.title}</h2><p>${s.genre||''}</p>`;list.appendChild(c);});
+function renderSerialsList(serials) {
+  const list = document.getElementById('serialsCards');
+  if (!list) return;
+  list.innerHTML = '';
+
+  serials.forEach(s => {
+    const c = document.createElement('div');
+    c.className = 'story-card';
+    c.innerHTML = `
+      <h2>${s.title}</h2>
+      <p>${s.genre || ''}</p>
+      <button class="view-serial-btn">View Serial</button>
+    `;
+
+    c.querySelector('.view-serial-btn').addEventListener('click', async () => {
+      const titleKey = s.title.trim();
+      console.log('🎬 View Serial clicked:', titleKey);
+
+      try {
+        const allSnap = await get(ref(window._firebase.db, 'serials'));
+        if (!allSnap.exists()) {
+          alert('No serials found in Firebase.');
+          return;
+        }
+
+        const allSerials = allSnap.val();
+        let data = null;
+let foundKey = null;
+
+// Try exact key match first
+if (allSerials[titleKey]) {
+  data = allSerials[titleKey];
+  foundKey = titleKey;
+} else {
+  // Otherwise, scan all serials by title field
+  for (const [key, obj] of Object.entries(allSerials)) {
+    if ((obj.title || '').trim().toLowerCase() === titleKey.toLowerCase()) {
+      data = obj;
+      foundKey = key;
+      break;
+    }
+  }
 }
+
+if (data) {
+          console.log(`✅ Found serial "${titleKey}" under key "${foundKey}"`);
+          openSerialPreview(data);
+        } else {
+          console.warn(`⚠️ Serial "${titleKey}" not found in Firebase.`);
+          alert(`Serial "${titleKey}" not found!`);
+        }
+
+      } catch (err) {
+        console.error('❌ Error fetching serial from Firebase:', err);
+        alert('Error fetching serial. Check your network connection.');
+      }
+    });
+
+    list.appendChild(c);
+  });
+}
+
+
+function openSerialPreview(serialData) {
+  const preview = document.getElementById('previewFull');
+  preview.innerHTML = `
+    <div class="fullscreen-panel">
+      <div class="panel-inner">
+        <div class="panel-top">
+          <h2>${serialData.title}</h2>
+          <button class="btn btn-secondary" id="closePreviewBtn">Close</button>
+        </div>
+        <div class="panel-meta">
+          Genre: ${serialData.genre || 'N/A'} • Episodes: ${serialData.episodes?.length || 0}
+        </div>
+        <div class="episodes-list">
+          ${(serialData.episodes || []).map((ep, i) => `
+            <div class="dashboard-card">
+              <h3>${ep.title}</h3>
+              <p>${ep.description || ''}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  preview.classList.remove('hidden');
+  document.getElementById('closePreviewBtn').addEventListener('click', () => {
+    preview.classList.add('hidden');
+  });
+}
+
+// ---------- STORIES + SERIALS LOAD FROM FIREBASE ----------
+
 let _storiesRendered = false;
+
 onValue(ref(db, 'stories'), snap => {
   if (snap.exists()) {
     const obj = snap.val();
     window.storiesData = Object.values(obj);
-
     if (!_storiesRendered) {
-   
       _storiesRendered = true;
     }
   } else {
@@ -357,7 +455,45 @@ onValue(ref(db, 'stories'), snap => {
     saveLocal('storiesData', []);
   }
 });
-onValue(ref(db,'serials'),snap=>{if(snap.exists()){const obj=snap.val();window.serialsData=Object.values(obj);saveLocal('serialsData',window.serialsData);renderSerialsList(window.serialsData);}else{window.serialsData=[];saveLocal('serialsData',[]);}});
+
+onValue(ref(db, 'serials'), snap => {
+  if (snap.exists()) {
+    const obj = snap.val();
+    window.serialsData = Object.values(obj);
+    saveLocal('serialsData', window.serialsData);
+
+    console.log(`🔥 Firebase delivered ${window.serialsData.length} serials`);
+
+    // ✅ Update both list and browse views
+    if (typeof renderSerialsList === 'function') {
+      renderSerialsList(window.serialsData);
+    }
+    if (typeof renderBrowseSerials === 'function') {
+      renderBrowseSerials(window.serialsData, { mergeWithSaved: false });
+    }
+
+  } else {
+    window.serialsData = [];
+    saveLocal('serialsData', []);
+    if (typeof renderBrowseSerials === 'function') {
+      renderBrowseSerials([], { includeDemo: true, demoCount: 10 });
+    }
+  }
+});
+
+// ---------- OPTIONAL: UPDATE YOUR SAVE CALLS TOO ----------
+// Everywhere you have a serial save call like this:
+// await set(ref(db, `serials/${encodeURIComponent(ser.title)}`), ser);
+
+// Replace with this:
+async function saveSerialToFirebase(ser) {
+  try {
+    await set(ref(window._firebase.db, `serials/${ser.title}`), ser);
+    console.log(`✅ Serial "${ser.title}" saved successfully to Firebase.`);
+  } catch (err) {
+    console.error('❌ Error saving serial to Firebase:', err);
+  }
+}
 
 </script>
 
@@ -402,9 +538,7 @@ onValue(ref(db,'serials'),snap=>{if(snap.exists()){const obj=snap.val();window.s
         <div id="storiesCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;padding:12px"></div>
       </div>
       <!-- Fullscreen Preview & Reader Containers -->
-  <div id="previewFull" class="hidden"></div>
-
-  <div id="readerFull" class="hidden"></div>
+  
 
 
       <div id="readerModal" class="hidden popup">
@@ -1218,8 +1352,20 @@ div.addEventListener('click', ()=> {
           try{
             if(window._firebase && window._firebase.set){
               const { db, ref, set } = window._firebase;
-              await set(ref(db, `serials/${encodeURIComponent(ser.title)}`), ser);
-              console.log('Saved serial to Firebase:', ser.title);
+              await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+              saveLocal('serialsData', serialsData);
+saveLocal('serialSlots', serialSlots);
+// ✅ Upload full serial with new episode to Firebase
+try {
+  if (window._firebase && window._firebase.set) {
+    const { db, ref, set } = window._firebase;
+    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
+  }
+} catch (err) {
+  console.warn('❌ Firebase update failed for new episode:', err);
+}
+console.log('Saved serial to Firebase:', ser.title);
             }
           }catch(err){ console.warn('Firebase save failed for serial', err); }
 
@@ -1230,16 +1376,40 @@ div.addEventListener('click', ()=> {
             try{
               if(window._firebase && window._firebase.set){
                 const { db, ref, set } = window._firebase;
-                await set(ref(db, `serials/${encodeURIComponent(ser.title)}`), ser);
-                console.log('Saved new episode (serial) to Firebase:', ser.title);
+                await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+                saveLocal('serialsData', serialsData);
+saveLocal('serialSlots', serialSlots);
+// ✅ Upload full serial with new episode to Firebase
+try {
+  if (window._firebase && window._firebase.set) {
+    const { db, ref, set } = window._firebase;
+    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
+  }
+} catch (err) {
+  console.warn('❌ Firebase update failed for new episode:', err);
+}
+console.log('Saved new episode (serial) to Firebase:', ser.title);
               }
             }catch(err){ console.warn('Firebase save failed for new episode', err); }
 
           try{
             if(window._firebase && window._firebase.set){
               const { db, ref, set } = window._firebase;
-              await set(ref(db, `serials/${encodeURIComponent(ser.title)}`), ser);
-              console.log('Saved serial to Firebase:', ser.title);
+              await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+              saveLocal('serialsData', serialsData);
+saveLocal('serialSlots', serialSlots);
+// ✅ Upload full serial with new episode to Firebase
+try {
+  if (window._firebase && window._firebase.set) {
+    const { db, ref, set } = window._firebase;
+    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
+  }
+} catch (err) {
+  console.warn('❌ Firebase update failed for new episode:', err);
+}
+console.log('Saved serial to Firebase:', ser.title);
             }
           }catch(err){ console.warn('Firebase save failed for serial', err); }
 
@@ -1277,8 +1447,20 @@ div.addEventListener('click', ()=> {
           try{
             if(window._firebase && window._firebase.set){
               const { db, ref, set } = window._firebase;
-              await set(ref(db, `serials/${encodeURIComponent(ser.title)}`), ser);
-              console.log('Saved serial to Firebase:', ser.title);
+              await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+              saveLocal('serialsData', serialsData);
+saveLocal('serialSlots', serialSlots);
+// ✅ Upload full serial with new episode to Firebase
+try {
+  if (window._firebase && window._firebase.set) {
+    const { db, ref, set } = window._firebase;
+    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
+  }
+} catch (err) {
+  console.warn('❌ Firebase update failed for new episode:', err);
+}
+console.log('Saved serial to Firebase:', ser.title);
             }
           }catch(err){ console.warn('Firebase save failed for serial', err); }
 
@@ -1289,16 +1471,40 @@ div.addEventListener('click', ()=> {
             try{
               if(window._firebase && window._firebase.set){
                 const { db, ref, set } = window._firebase;
-                await set(ref(db, `serials/${encodeURIComponent(ser.title)}`), ser);
-                console.log('Saved serial draft to Firebase:', ser.title);
+                await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+                saveLocal('serialsData', serialsData);
+saveLocal('serialSlots', serialSlots);
+// ✅ Upload full serial with new episode to Firebase
+try {
+  if (window._firebase && window._firebase.set) {
+    const { db, ref, set } = window._firebase;
+    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
+  }
+} catch (err) {
+  console.warn('❌ Firebase update failed for new episode:', err);
+}
+console.log('Saved serial draft to Firebase:', ser.title);
               }
             }catch(err){ console.warn('Firebase draft save failed for serial', err); }
 
           try{
             if(window._firebase && window._firebase.set){
               const { db, ref, set } = window._firebase;
-              await set(ref(db, `serials/${encodeURIComponent(ser.title)}`), ser);
-              console.log('Saved serial to Firebase:', ser.title);
+              await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+              saveLocal('serialsData', serialsData);
+saveLocal('serialSlots', serialSlots);
+// ✅ Upload full serial with new episode to Firebase
+try {
+  if (window._firebase && window._firebase.set) {
+    const { db, ref, set } = window._firebase;
+    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
+    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
+  }
+} catch (err) {
+  console.warn('❌ Firebase update failed for new episode:', err);
+}
+console.log('Saved serial to Firebase:', ser.title);
             }
           }catch(err){ console.warn('Firebase save failed for serial', err); }
 
@@ -3694,8 +3900,7 @@ function syncSerialsToStorage(){
       }
     });
     saveSavedSerials(current);
-    renderBrowseSerials(current);
-  }catch(e){ console.warn(e); }
+      }catch(e){ console.warn(e); }
 }
 // call periodically as a safety net
 setInterval(syncSerialsToStorage, 1500);
@@ -4295,1100 +4500,957 @@ function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount
     console.warn('renderBrowseSerials error:', e);
   }
 }
-function openSerialPreview(title) {
+async function openSerialPreview(input) {
   try {
-    const VOTES_STORE_KEY = 'global_votes_v1';
-    const USER_VOTES_KEY = 'user_votes_v1';
-    const READS_KEY = 'serial_reads_v1';
-    const COMMENTS_KEY = 'comments_v1'; // new storage for comments
-    const STORAGE_KEY = window.STORAGE_KEY || 'user_profile_v1';
-
-    let saved = [];
-    try {
-      saved = typeof loadSavedSerials === 'function' ? loadSavedSerials() : (JSON.parse(localStorage.getItem('saved_serials_v1') || '[]'));
-    } catch (e) { saved = []; }
-
-    const serial = (saved || []).find(s => s.title === title) || (serialsData || []).find(s => s.title === title);
-    if (!serial) { alert('Serial not found'); return; }
-
-    const voteKey = `serial::${serial.title || 'untitled'}`;
-    const readKey = `serial::${serial.title || 'untitled'}`;
-    const commentsKey = voteKey; // reuse same serial identifier for comments store nesting
-
-    function loadStore(key) { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) { return {}; } }
-    function saveStore(key, obj) { try { localStorage.setItem(key, JSON.stringify(obj || {})); } catch (e) {} }
-
-    const votesStore = loadStore(VOTES_STORE_KEY);
-    const userStore = loadStore(USER_VOTES_KEY);
-    const readsStore = loadStore(READS_KEY);
-    const commentsStore = loadStore(COMMENTS_KEY);
-
-    const storedVotes = votesStore[voteKey] || { likes: Number(serial.likes || 0), dislikes: Number(serial.dislikes || 0) };
-    serial.likes = Number(storedVotes.likes || 0);
-    serial.dislikes = Number(storedVotes.dislikes || 0);
-    votesStore[voteKey] = { likes: serial.likes, dislikes: serial.dislikes };
-    saveStore(VOTES_STORE_KEY, votesStore);
-
-    const storedReads = readsStore[readKey] || { total: 0, episodes: {} };
-    readsStore[readKey] = storedReads;
-    saveStore(READS_KEY, readsStore);
-
-    // ensure comments structure exists
-    commentsStore[commentsKey] = commentsStore[commentsKey] || { comments: [] };
-    saveStore(COMMENTS_KEY, commentsStore);
-
-    // local UI state
-    const expandedReplies = new Set(); // which comment IDs currently showing replies
-    let currentReplyTo = null; // if set, sending uses addReply instead of addComment
-
-    let panel = document.getElementById('serialPreviewFull');
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.id = 'serialPreviewFull';
-      panel.className = 'fullscreen-panel';
-      panel.style.zIndex = 1100;
-      panel.style.overflow = 'auto';
-      document.body.appendChild(panel);
+    const { db, ref, get, set } = window._firebase || {};
+    if (!db || !ref || !get) {
+      alert("Firebase not ready yet.");
+      return;
     }
 
-    panel.innerHTML = '';
-    const inner = document.createElement('div');
-    inner.className = 'panel-inner';
+    // --- Resolve serial title ---
+    const title = typeof input === "string"
+      ? input.trim()
+      : (input && (input.key || input.title || "")).trim();
 
-    function esc(str) { return String(str == null ? '' : str).replace(/</g, '&lt;'); }
-    function formatDateVal(raw) {
-      if (!raw && raw !== 0) return '—';
-      let d = null;
-      if (typeof raw === 'number' || /^\d+$/.test(String(raw))) d = new Date(Number(raw));
-      else d = new Date(raw);
-      if (isNaN(d.getTime())) return '—';
-      return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+    if (!title) {
+      alert("Serial not found (no title).");
+      return;
     }
 
-    let author = serial.author || serial.authorName || serial.writtenBy || serial.writer || serial.by;
-    if (!author) {
-      const profileRaw = localStorage.getItem(STORAGE_KEY);
-      if (profileRaw) {
-        try {
-          const p = JSON.parse(profileRaw);
-          if (p.name && p.name.trim()) author = p.name.trim();
-        } catch (e) {}
+    // --- Fetch serial data ---
+    let serialData =
+      typeof input === "object" && input.title ? input : null;
+
+    if (!serialData) {
+      const snap = await get(ref(db, "serials"));
+      if (snap.exists()) {
+        const all = snap.val();
+        for (const [key, obj] of Object.entries(all)) {
+          if ((obj.title || "").trim().toLowerCase() === title.toLowerCase()) {
+            serialData = obj;
+            break;
+          }
+        }
       }
     }
-    author = author || 'Unknown';
 
-    let rawPublished = serial.publishedOn || serial.date || serial.published || serial.published_on || serial.publishedDate || serial.published_at;
-    if (!rawPublished) {
-      rawPublished = new Date().toISOString();
-      serial.publishedOn = rawPublished;
-      try { if (typeof saveSerials === 'function') saveSerials(); } catch (e) {}
+    if (!serialData) {
+      alert(`Serial "${title}" not found in Firebase.`);
+      return;
     }
-    const dateStr = formatDateVal(rawPublished);
 
-    // Header (with genre div for share & comments buttons)
-    const header = document.createElement('div');
-    header.className = 'panel-top';
-    header.innerHTML = `
-      <div style="flex:1">
-        <h1 style="margin:6px 0 4px 0">${esc(serial.title || 'Untitled')}</h1>
-        <div class="panel-meta" style="margin-top:6px">Written by ${esc(author)} • Written on ${dateStr}</div>
-        <div class="serial-genre" style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-top:6px">
-          Genre: ${esc(serial.genre || '—')}
+    // --- Ensure fields exist ---
+    serialData.likes = serialData.likes || 0;
+    serialData.dislikes = serialData.dislikes || 0;
+
+    // --- Calculate total reads ---
+    const totalReads = (serialData.episodes || []).reduce(
+      (sum, ep) => sum + (ep.reads || 0),
+      0
+    );
+
+    // --- Load user vote state ---
+    const votes = JSON.parse(localStorage.getItem("user_votes_serials") || "{}");
+    let userVote = votes[serialData.title] || null;
+
+    // --- Create container ---
+    let preview = document.getElementById("previewFull");
+    if (!preview) {
+      preview = document.createElement("div");
+      preview.id = "previewFull";
+      document.body.appendChild(preview);
+    }
+
+    // --- UI Template ---
+    preview.innerHTML = `
+      <style>
+#previewFull {
+  position: fixed;
+  inset: 0;
+  background: #f7f8fb;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+  overflow: auto;
+  padding: 40px 20px;
+}
+#previewFull.show { opacity: 1; }
+.fullscreen-panel {
+  width: 100%;
+  max-width: 900px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.4s ease both;
+  margin: auto;
+}
+@keyframes fadeIn {
+  from {opacity: 0; transform: scale(0.97);}
+  to {opacity: 1; transform: scale(1);}
+}
+.panel-top {
+  background: linear-gradient(135deg, #5b7cff, #00b4d8);
+  color: white;
+  padding: 22px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.panel-top h2 { margin: 0; font-size: 1.8rem; }
+.panel-meta {
+  padding: 16px 28px;
+  font-size: 14px;
+  color: #444;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+.vote-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.vote-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #f1f1f1;
+  color: #606060;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.vote-btn:hover {
+  background: #e5e5e5;
+  transform: translateY(-1px);
+}
+.vote-btn svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+.vote-btn.active.like {
+  background: #e6f0ff;
+  color: #1976d2;
+}
+.vote-btn.active.like svg path {
+  fill: #1976d2;
+}
+.vote-btn.active.dislike {
+  background: #ffebee;
+  color: #d32f2f;
+}
+.vote-btn.active.dislike svg path {
+  fill: #d32f2f;
+}
+.vote-btn:active {
+  transform: scale(0.93);
+}
+.vote-count {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: inherit;
+}
+.share-menu {
+  position: absolute;
+  z-index: 99999;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+  padding: 10px;
+}
+.share-option {
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+.share-option:hover { background: #f5f5f5; }
+.episodes-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+  background: #f9fafc;
+  display: flex;
+  justify-content: center;
+}
+.episodes-list {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+.episode-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e6e9f2;
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.episode-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+.episode-card h3 { margin: 0 0 6px; font-size: 1.1rem; color: #2b2b2b; }
+.episode-card p { font-size: 0.9rem; color: #666; margin-bottom: 14px; }
+.episode-card button { align-self: flex-end; }
+      </style>
+
+      <div class="fullscreen-panel">
+        <div class="panel-top">
+          <h2>${serialData.title}</h2>
+          <button class="btn btn-secondary" id="closePreviewBtn">✕ Close</button>
         </div>
-        <div class="panel-meta" style="margin-top:6px">${esc(serial.description || '')}</div>
+
+        <div class="panel-meta">
+          <div class="meta-row">
+            <div>
+              <b>Genre:</b> ${serialData.genre || "N/A"} &nbsp; • &nbsp;
+              <b>Episodes:</b> ${(serialData.episodes || []).length} &nbsp; • &nbsp;
+              <b>Reads:</b> ${totalReads}
+            </div>
+            <div class="vote-bar">
+              <button class="vote-btn like ${userVote === "like" ? "active" : ""}" id="likeBtn">
+                 <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-6 0v4H5v10h13l2-9h-6z" fill="currentColor"/></svg>
+                <span id="likeCount">${serialData.likes}</span>
+              </button>
+              <button class="vote-btn dislike ${userVote === "dislike" ? "active" : ""}" id="dislikeBtn">
+                   <svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 6 0v-4h3V5H6l-2 9h6z" fill="currentColor"/></svg>
+                <span id="dislikeCount">${serialData.dislikes}</span>
+              </button>
+              <button class="vote-btn" id="shareSerialBtn">🔗 Share</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="episodes-scroll">
+          <div class="episodes-list">
+            ${(serialData.episodes || [])
+              .map(
+                (ep, i) => `
+                <div class="episode-card">
+                  <h3>${ep.title || "Untitled Episode"}</h3>
+                  <p>${ep.description || "No description available."}</p>
+                  <button class="btn btn-primary read-episode-btn" data-ep="${i}">
+                    📖 Read Episode
+                  </button>
+                </div>`
+              )
+              .join("")}
+          </div>
+        </div>
       </div>
     `;
-    inner.appendChild(header);
 
-    // SHARE + COMMENTS BUTTONS
-    const genreDiv = header.querySelector('.serial-genre');
-    if (genreDiv) {
-      const shareBtn = document.createElement('button');
-      shareBtn.className = 'share-btn';
-      shareBtn.textContent = 'Share';
-      genreDiv.appendChild(shareBtn);
+    preview.classList.remove("hidden");
+    setTimeout(() => preview.classList.add("show"), 10);
 
-      const commentsBtn = document.createElement('button');
-      commentsBtn.className = 'comments-btn';
-      commentsBtn.textContent = 'Comments';
-      commentsBtn.style.marginLeft = '8px';
-      genreDiv.appendChild(commentsBtn);
+    // --- Close preview ---
+    document.getElementById("closePreviewBtn").onclick = () => {
+      preview.classList.remove("show");
+      setTimeout(() => preview.remove(), 300);
+    };
 
-      if (!document.getElementById('share-ui-style')) {
-        const style = document.createElement('style');
-        style.id = 'share-ui-style';
-        style.textContent = `
-          .share-btn, .comments-btn {
-            background: linear-gradient(135deg, #ff5f6d, #ffc371);
-            border: none;
-            color: white;
-            padding: 8px 14px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.25s ease;
-            font-size: 14px;
-          }
-          .comments-btn { background: linear-gradient(135deg, #6ee7b7, #3b82f6); }
-          .share-btn:hover, .comments-btn:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-          }
-          .share-menu {
-            position: absolute;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 8px;
-            display: none;
-            flex-direction: column;
-            gap: 8px;
-            min-width: 200px;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-            z-index: 1200;
-            animation: fadeIn 0.15s ease-out;
-          }
-          .share-option {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px;
-            border: none;
-            border-radius: 8px;
-            background: #f9f9f9;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            font-weight: 500;
-          }
-          .share-option:hover { background: #ffe9d6; }
-          @keyframes fadeIn {
-            from {opacity:0; transform:translateY(-5px);}
-            to {opacity:1; transform:translateY(0);}
-          }
-
-          /* Comments panel */
-          .comments-panel {
-            position: fixed;
-            inset: 0;
-            background: rgba(255,255,255,0.98);
-            z-index: 1300;
-            display: flex;
-            flex-direction: column;
-            padding: 18px;
-            gap: 12px;
-            overflow: auto;
-          }
-          .comments-top {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:12px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 12px;
-          }
-          .comments-title { font-size:18px; font-weight:700; display:flex; gap:12px; align-items:center; }
-          .comments-count-badge {
-            background:#f3f4f6; border-radius:999px; padding:6px 10px; font-weight:600;
-          }
-          .comments-list { display:flex; flex-direction:column; gap:12px; padding:12px 4px; max-width:900px; width:100%; margin:0 auto; }
-          .comment-card {
-            background:#fff; border:1px solid #eee; border-radius:12px; padding:12px; box-shadow:0 4px 12px rgba(0,0,0,0.03);
-          }
-          .comment-meta { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:8px; color:#374151; font-weight:600; }
-          .comment-text { color:#111827; white-space:pre-wrap; margin-bottom:8px; }
-          .comment-actions { display:flex; gap:8px; align-items:center; font-size:13px; color:#374151; }
-          .btn-action { background:transparent; border:none; cursor:pointer; padding:6px 8px; border-radius:8px; transition:background 0.12s; }
-          .btn-action:hover { background:#f3f4f6; }
-          .reply-list { margin-top:8px; display:flex; flex-direction:column; gap:8px; margin-left:12px; }
-          .reply-card { background:#fafafa; border:1px solid #f0f0f0; padding:8px; border-radius:8px; }
-          .comment-input-wrap {
-            position: sticky; bottom:0; background:transparent; padding:12px 0; border-top:1px solid #eee; display:flex; justify-content:center;
-          }
-          .comment-input {
-            display:flex; gap:px; align-items:center; width:100%; max-width:900px; background:#fff; border:1px solid #e5e7eb; border-radius:999px; padding:10px;
-            box-shadow:0 6px 20px rgba(0,0,0,0.03);
-          }
-          .comment-input textarea { border:0; outline:0; resize:none; width:100%; padding:6px 8px; font-size:14px; }
-          .comment-send { background:linear-gradient(90deg,#7c3aed,#06b6d4); color:#fff; border:none; padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:700; }
-          .small-muted { color:#6b7280; font-size:13px; }
-          .reply-mode-indicator {
-            display:flex; align-items:center; gap:8px; background:#fff8; border-radius:999px; padding:6px 10px; border:1px dashed #e5e7eb; margin-bottom:6px;
-            max-width:900px; margin-left:auto; margin-right:auto;
-          }
-        `;
-        document.head.appendChild(style);
-      }
-
-      const shareMenu = document.createElement('div');
-      shareMenu.className = 'share-menu';
-      document.body.appendChild(shareMenu);
-
-      function getShareLink(platform) {
-        const link = `https://meurbal.in?serial=${encodeURIComponent(serial.title)}`;
-        const message = `Title: ${serial.title || 'Untitled'}\nGenre: ${serial.genre || '—'}\nDescription: ${serial.description || ''}\nRead here: ${link}`;
-        if (platform === 'WhatsApp') return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-        if (platform === 'Facebook') return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
-        if (platform === 'Twitter') return `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
-        return link;
-      }
-
-      const platforms = [
-        { name: 'WhatsApp', emoji: '🟢' },
-        { name: 'Facebook', emoji: '🔵' },
-        { name: 'Twitter', emoji: '🐦' },
-        { name: 'Copy Link', emoji: '🔗' }
-      ];
-
-      platforms.forEach(({ name, emoji }) => {
-        const option = document.createElement('button');
-        option.className = 'share-option';
-        option.innerHTML = `${emoji} ${name}`;
-        option.addEventListener('click', async () => {
-          if (name === 'Copy Link') {
-            const link = getShareLink();
-            await navigator.clipboard.writeText(link);
-            option.textContent = '✅ Link Copied!';
-            setTimeout(() => (option.innerHTML = `${emoji} ${name}`), 1500);
-          } else {
-            const url = getShareLink(name);
-            window.open(url, '_blank');
-          }
-          shareMenu.style.display = 'none';
-        });
-        shareMenu.appendChild(option);
+    // --- Read episode ---
+    preview.querySelectorAll(".read-episode-btn").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const epIndex = parseInt(e.currentTarget.dataset.ep, 10);
+        const episode = serialData.episodes[epIndex];
+        episode.reads = (episode.reads || 0) + 1;
+        await set(ref(db, `serials/${encodeURIComponent(serialData.title)}`), serialData);
+        preview.remove();
+        if (typeof openSerialReader === "function") openSerialReader(serialData.title, epIndex);
       });
-
-      shareBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = shareBtn.getBoundingClientRect();
-        shareMenu.style.top = `${rect.bottom + window.scrollY + 6}px`;
-        shareMenu.style.left = `${rect.left + window.scrollX}px`;
-        shareMenu.style.display = shareMenu.style.display === 'flex' ? 'none' : 'flex';
-      });
-
-      document.addEventListener('click', (e) => {
-        if (!shareMenu.contains(e.target) && e.target !== shareBtn) {
-          shareMenu.style.display = 'none';
-        }
-      });
-
-      // COMMENTS PANEL logic
-      commentsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openCommentsPanel();
-      });
-
-      function openCommentsPanel() {
-        // create panel if not exists
-        let cpanel = document.getElementById('serialCommentsFull');
-        if (cpanel) cpanel.remove(); // recreate to ensure fresh state
-        cpanel = document.createElement('div');
-        cpanel.id = 'serialCommentsFull';
-        cpanel.className = 'comments-panel';
-
-        // top area: title + close + like count
-        const top = document.createElement('div');
-        top.className = 'comments-top';
-        top.innerHTML = `
-          <div style="display:flex;align-items:center;gap:12px">
-            <div class="comments-title">
-              <span style="font-size:20px">${esc(serial.title || 'Untitled')}</span>
-              <span class="comments-count-badge" id="commentsCountBadge">${(commentsStore[commentsKey].comments || []).length} comments</span>
-            </div>
-            <div class="small-muted">Likes: <strong id="serialLikeBadge">${serial.likes}</strong></div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button id="closeCommentsBtn" class="share-btn" style="background:linear-gradient(90deg,#ef4444,#f97316)">Close</button>
-          </div>
-        `;
-        cpanel.appendChild(top);
-
-        // main list container
-        const list = document.createElement('div');
-        list.className = 'comments-list';
-        list.id = 'commentsList';
-        cpanel.appendChild(list);
-
-        // bottom input area (sticky)
-        const inputWrap = document.createElement('div');
-        inputWrap.className = 'comment-input-wrap';
-        inputWrap.innerHTML = `
-          <div id="replyModeIndicatorWrap" style="display:none;"></div>
-          <div class="comment-input">
-            <textarea id="commentTextArea" placeholder="Add a public comment..." rows="2"></textarea>
-            <button id="sendCommentBtn" class="comment-send">Send</button>
-          </div>
-        `;
-        cpanel.appendChild(inputWrap);
-
-        document.body.appendChild(cpanel);
-        renderComments();
-
-        document.getElementById('closeCommentsBtn').addEventListener('click', () => cpanel.remove());
-        document.getElementById('sendCommentBtn').addEventListener('click', sendComment);
-        document.getElementById('commentTextArea').addEventListener('keydown', function (e) {
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(); }
-        });
-      }
-
-      // helper: get current user name (from STORAGE_KEY) or "You"
-      function getCurrentUserName() {
-        try {
-          const p = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-          if (p && p.name && p.name.trim()) return p.name.trim();
-        } catch (e) { }
-        return 'You';
-      }
-
-      function generateId() { return 'c_' + Date.now().toString(36) + '_' + Math.floor(Math.random() * 1000).toString(36); }
-
-      // Comments manipulation functions
-      function loadCommentsObj() {
-        const s = loadStore(COMMENTS_KEY);
-        s[commentsKey] = s[commentsKey] || { comments: [] };
-        return s;
-      }
-      function saveCommentsObj(obj) {
-        saveStore(COMMENTS_KEY, obj);
-      }
-
-      function sendComment() {
-        const ta = document.getElementById('commentTextArea');
-        if (!ta) return;
-        const text = ta.value.trim();
-        if (!text) return;
-        const user = getCurrentUserName();
-        const commentsObj = loadCommentsObj();
-
-        if (currentReplyTo) {
-          // post as reply to currentReplyTo
-          const c = (commentsObj[commentsKey].comments || []).find(x => x.id === currentReplyTo);
-          if (!c) {
-            // fallback to normal comment
-            currentReplyTo = null;
-          } else {
-            const newReply = {
-              id: generateId(),
-              author: user,
-              text: text,
-              ts: Date.now(),
-              likes: 0,
-              dislikes: 0
-            };
-            c.replies = c.replies || [];
-            c.replies.push(newReply);
-            // ensure replies panel shows after adding
-            expandedReplies.add(c.id);
-            saveCommentsObj(commentsObj);
-            ta.value = '';
-            currentReplyTo = null;
-            renderComments();
-            updateReplyModeIndicator();
-            return;
-          }
-        }
-
-        // normal comment
-        const newComment = {
-          id: generateId(),
-          author: user,
-          text: text,
-          ts: Date.now(),
-          likes: 0,
-          dislikes: 0,
-          replies: []
-        };
-        commentsObj[commentsKey].comments.unshift(newComment); // newest first
-        saveCommentsObj(commentsObj);
-        ta.value = '';
-        renderComments();
-      }
-
-      function updateReplyModeIndicator() {
-        const wrap = document.getElementById('replyModeIndicatorWrap');
-        if (!wrap) return;
-        if (currentReplyTo) {
-          const obj = loadCommentsObj();
-          const c = (obj[commentsKey].comments || []).find(x => x.id === currentReplyTo);
-          const name = c ? c.author : '';
-          wrap.style.display = 'block';
-          wrap.innerHTML = `<div class="reply-mode-indicator">Replying to <strong>${esc(name)}</strong>
-            <button id="cancelReplyMode" class="btn-action" style="margin-left:8px">Cancel</button></div>`;
-          document.getElementById('cancelReplyMode').addEventListener('click', () => {
-            currentReplyTo = null;
-            updateReplyModeIndicator();
-            document.getElementById('commentTextArea').focus();
-          });
-        } else {
-          wrap.style.display = 'none';
-          wrap.innerHTML = '';
-        }
-      }
-
-      function renderComments() {
-        const list = document.getElementById('commentsList');
-        if (!list) return;
-        list.innerHTML = '';
-        const commentsObj = loadCommentsObj();
-        const commentsArr = commentsObj[commentsKey].comments || [];
-        const badge = document.getElementById('commentsCountBadge');
-        if (badge) badge.textContent = `${commentsArr.length} comments`;
-        const likeBadge = document.getElementById('serialLikeBadge');
-        if (likeBadge) likeBadge.textContent = serial.likes;
-
-        commentsArr.forEach(comment => {
-          const card = document.createElement('div');
-          card.className = 'comment-card';
-          card.dataset.cid = comment.id;
-
-          const meta = document.createElement('div');
-          meta.className = 'comment-meta';
-
-          // left: author + timestamp
-          const left = document.createElement('div');
-          left.innerHTML = `${esc(comment.author)} <span class="small-muted" style="font-weight:500;margin-left:8px">${new Date(comment.ts).toLocaleString()}</span>`;
-
-          // right: delete only if same author
-          const right = document.createElement('div');
-
-          if (comment.author === getCurrentUserName()) {
-            const delBtn = document.createElement('button');
-            delBtn.className = 'btn-action delete-comment';
-            delBtn.textContent = 'Delete';
-            delBtn.addEventListener('click', () => {
-              if (!confirm('Delete this comment?')) return;
-              deleteComment(comment.id);
-            });
-            right.appendChild(delBtn);
-          }
-
-          meta.appendChild(left);
-          meta.appendChild(right);
-          card.appendChild(meta);
-
-          const text = document.createElement('div');
-          text.className = 'comment-text';
-          text.innerHTML = esc(comment.text);
-          card.appendChild(text);
-
-          const actions = document.createElement('div');
-          actions.className = 'comment-actions';
-          // reply toggle text shows replies count and toggles visibility
-          const repliesCount = (comment.replies || []).length;
-          actions.innerHTML = `
-            <button class="btn-action like-comment">👍 <span class="cnt">${comment.likes || 0}</span></button>
-            <button class="btn-action dislike-comment">👎 <span class="cnt">${comment.dislikes || 0}</span></button>
-            <button class="btn-action reply-open">Reply</button>
-            <button class="btn-action replies-toggle">Replies (${repliesCount})</button>
-          `;
-          card.appendChild(actions);
-
-          // reply list (hidden by default)
-          const replyList = document.createElement('div');
-          replyList.className = 'reply-list';
-          replyList.style.display = expandedReplies.has(comment.id) ? 'flex' : 'none';
-
-          (comment.replies || []).forEach(reply => {
-            const r = document.createElement('div');
-            r.className = 'reply-card';
-            r.dataset.rid = reply.id;
-            r.innerHTML = `
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div style="font-weight:600">${esc(reply.author)} <span class="small-muted" style="font-weight:500;margin-left:8px">${new Date(reply.ts).toLocaleString()}</span></div>
-                <div></div>
-              </div>
-              <div style="margin-top:6px">${esc(reply.text)}</div>
-              <div style="margin-top:8px;display:flex;gap:8px">
-                <button class="btn-action like-reply">👍 <span class="cnt">${reply.likes || 0}</span></button>
-                <button class="btn-action dislike-reply">👎 <span class="cnt">${reply.dislikes || 0}</span></button>
-              </div>
-            `;
-            // delete reply only visible to reply author
-            const rightContainer = r.querySelector('div > div:last-child');
-            if (reply.author === getCurrentUserName()) {
-              const delR = document.createElement('button');
-              delR.className = 'btn-action delete-reply';
-              delR.textContent = 'Delete';
-              delR.addEventListener('click', () => {
-                if (!confirm('Delete this reply?')) return;
-                deleteReply(comment.id, reply.id);
-              });
-              // append delete to the top-right container
-              r.querySelector('div').querySelector('div').appendChild(delR);
-            }
-
-            // attach reply-level like/dislike
-            r.querySelector('.like-reply').addEventListener('click', () => toggleReplyVote(comment.id, reply.id, 'like'));
-            r.querySelector('.dislike-reply').addEventListener('click', () => toggleReplyVote(comment.id, reply.id, 'dislike'));
-
-            replyList.appendChild(r);
-          });
-
-          card.appendChild(replyList);
-
-          // attach comment-level handlers
-          actions.querySelector('.like-comment').addEventListener('click', () => toggleCommentVote(comment.id, 'like'));
-          actions.querySelector('.dislike-comment').addEventListener('click', () => toggleCommentVote(comment.id, 'dislike'));
-
-          // Reply button: set the bottom bar to reply mode for this comment
-          actions.querySelector('.reply-open').addEventListener('click', () => {
-            currentReplyTo = comment.id;
-            updateReplyModeIndicator();
-            const ta = document.getElementById('commentTextArea');
-            if (ta) {
-              ta.focus();
-              // prefill with @author optionally (but keep typed text separate)
-              // ta.value = `@${comment.author} `;
-            }
-          });
-
-          // Replies toggle: show/hide replies for this comment
-          actions.querySelector('.replies-toggle').addEventListener('click', () => {
-            if (expandedReplies.has(comment.id)) expandedReplies.delete(comment.id);
-            else expandedReplies.add(comment.id);
-            renderComments();
-          });
-
-          list.appendChild(card);
-        });
-
-        updateReplyModeIndicator();
-      }
-
-      function toggleCommentVote(commentId, mode) {
-        const obj = loadCommentsObj();
-        const comments = obj[commentsKey].comments || [];
-        const c = comments.find(x => x.id === commentId);
-        if (!c) return;
-        if (mode === 'like') {
-          c.likes = (c.likes || 0) + 1;
-        } else {
-          c.dislikes = (c.dislikes || 0) + 1;
-        }
-        saveCommentsObj(obj);
-        renderComments();
-      }
-
-      function toggleReplyVote(commentId, replyId, mode) {
-        const obj = loadCommentsObj();
-        const comments = obj[commentsKey].comments || [];
-        const c = comments.find(x => x.id === commentId);
-        if (!c) return;
-        const r = (c.replies || []).find(rr => rr.id === replyId);
-        if (!r) return;
-        if (mode === 'like') r.likes = (r.likes || 0) + 1;
-        else r.dislikes = (r.dislikes || 0) + 1;
-        saveCommentsObj(obj);
-        renderComments();
-      }
-
-      function deleteComment(commentId) {
-        const obj = loadCommentsObj();
-        obj[commentsKey].comments = (obj[commentsKey].comments || []).filter(c => c.id !== commentId);
-        saveCommentsObj(obj);
-        // remove from expandedReplies set
-        expandedReplies.delete(commentId);
-        renderComments();
-      }
-
-      function deleteReply(commentId, replyId) {
-        const obj = loadCommentsObj();
-        const c = (obj[commentsKey].comments || []).find(x => x.id === commentId);
-        if (!c) return;
-        c.replies = (c.replies || []).filter(r => r.id !== replyId);
-        saveCommentsObj(obj);
-        renderComments();
-      }
-
-      // end of genreDiv handling
-    } // end if genreDiv
-
-    // CONTROL WRAPPER (close + likes/dislikes + reads)
-    // --- CONTROL WRAPPER (close + likes/dislikes + reads) ---
-    // NOTE: removed the separate "countDisplay" element to avoid duplication.
-    // Like/dislike counts are shown inside the buttons (.cnt spans).
-    const controlWrapper = document.createElement('div');
-    controlWrapper.style.display = 'flex';
-    controlWrapper.style.alignItems = 'center';
-    controlWrapper.style.gap = '12px';
-    controlWrapper.style.margin = '12px 0';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'jelly-btn';
-    closeBtn.id = 'closeSerialPreviewBtn';
-    closeBtn.textContent = 'Close';
-    controlWrapper.appendChild(closeBtn);
-
-    const likeBtn = document.createElement('button');
-    likeBtn.className = 'jelly-btn';
-    likeBtn.innerHTML = '👍 <span class="cnt">0</span>';
-    likeBtn.dataset.state = 'none';
-    controlWrapper.appendChild(likeBtn);
-
-    const dislikeBtn = document.createElement('button');
-    dislikeBtn.className = 'jelly-btn dislike-btn';
-    dislikeBtn.innerHTML = '👎 <span class="cnt">0</span>';
-    dislikeBtn.dataset.state = 'none';
-    controlWrapper.appendChild(dislikeBtn);
-
-    // --- keep reads display as single label ---
-    // remove any existing duplicate reads element (safe-guard)
-    const existingReadEl = document.getElementById('readCountDisplay');
-    if (existingReadEl) existingReadEl.remove();
-
-    inner.appendChild(controlWrapper);
-
-    // --- refreshUI (update only button counts and reads) ---
-    function refreshUI() {
-      serial.likes = Math.max(0, Number(serial.likes || 0));
-      serial.dislikes = Math.max(0, Number(serial.dislikes || 0));
-
-      // update counts inside the buttons
-      const likeCnt = likeBtn.querySelector('.cnt');
-      const dislikeCnt = dislikeBtn.querySelector('.cnt');
-      if (likeCnt) likeCnt.textContent = serial.likes;
-      if (dislikeCnt) dislikeCnt.textContent = serial.dislikes;
-
-      // update button visual states
-      const userChoice = (loadStore(USER_VOTES_KEY)[voteKey]) || 'none';
-      likeBtn.dataset.state = (userChoice === 'liked') ? 'liked' : 'none';
-      dislikeBtn.dataset.state = (userChoice === 'disliked') ? 'disliked' : 'none';
-      likeBtn.style.backgroundColor = likeBtn.dataset.state === 'liked' ? '#dbeafe' : '';
-      dislikeBtn.style.backgroundColor = dislikeBtn.dataset.state === 'disliked' ? '#fee2e2' : '';
-
-      // update reads
-      const readsNow = (loadStore(READS_KEY)[readKey] || { total: 0 }).total;
-      const rDisplay = document.getElementById('readCountDisplay');
-      if (rDisplay) rDisplay.textContent = `Reads = ${readsNow}`;
-
-      // update comments count badge if open
-      const badge = document.getElementById('commentsCountBadge');
-      const commentsObj = loadStore(COMMENTS_KEY);
-      if (badge && commentsObj[commentsKey]) badge.textContent = `${(commentsObj[commentsKey].comments || []).length} comments`;
-    }
-
-    function incrementReadCount(epIndex) {
-      const reads = loadStore(READS_KEY);
-      reads[readKey] = reads[readKey] || { total: 0, episodes: {} };
-      reads[readKey].total++;
-      reads[readKey].episodes[epIndex] = (reads[readKey].episodes[epIndex] || 0) + 1;
-      saveStore(READS_KEY, reads);
-      refreshUI();
-    }
-
-    function updateUserVote(newChoice) {
-      const votes = loadStore(VOTES_STORE_KEY);
-      const user = loadStore(USER_VOTES_KEY);
-      votes[voteKey] = votes[voteKey] || { likes: 0, dislikes: 0 };
-      const prev = user[voteKey] || 'none';
-
-      if (prev === 'liked') votes[voteKey].likes = Math.max(0, (votes[voteKey].likes || 1) - 1);
-      if (prev === 'disliked') votes[voteKey].dislikes = Math.max(0, (votes[voteKey].dislikes || 1) - 1);
-
-      if (newChoice === 'liked') votes[voteKey].likes = (votes[voteKey].likes || 0) + 1;
-      if (newChoice === 'disliked') votes[voteKey].dislikes = (votes[voteKey].dislikes || 0) + 1;
-
-      user[voteKey] = (newChoice === 'none') ? 'none' : newChoice;
-
-      saveStore(VOTES_STORE_KEY, votes);
-      saveStore(USER_VOTES_KEY, user);
-
-      serial.likes = votes[voteKey].likes;
-      serial.dislikes = votes[voteKey].dislikes;
-      refreshUI();
-      try { if (typeof saveSerials === 'function') saveSerials(); } catch (e) { }
-    }
-
-    likeBtn.addEventListener('click', function () {
-      const current = likeBtn.dataset.state === 'liked' ? 'liked' : (dislikeBtn.dataset.state === 'disliked' ? 'disliked' : 'none');
-      if (current === 'liked') updateUserVote('none');
-      else updateUserVote('liked');
     });
 
-    dislikeBtn.addEventListener('click', function () {
-      const current = dislikeBtn.dataset.state === 'disliked' ? 'disliked' : (likeBtn.dataset.state === 'liked' ? 'liked' : 'none');
-      if (current === 'disliked') updateUserVote('none');
-      else updateUserVote('disliked');
+    // --- Like / Dislike smart toggle ---
+    const likeBtn = document.getElementById("likeBtn");
+    const dislikeBtn = document.getElementById("dislikeBtn");
+    const likeCount = document.getElementById("likeCount");
+    const dislikeCount = document.getElementById("dislikeCount");
+
+    async function saveVoteChange() {
+      await set(ref(db, `serials/${encodeURIComponent(serialData.title)}`), serialData);
+      localStorage.setItem("user_votes_serials", JSON.stringify(votes));
+      likeCount.textContent = serialData.likes;
+      dislikeCount.textContent = serialData.dislikes;
+    }
+
+    likeBtn.onclick = async () => {
+      if (userVote === "like") {
+        serialData.likes--;
+        userVote = null;
+        votes[serialData.title] = null;
+        likeBtn.classList.remove("active");
+      } else {
+        if (userVote === "dislike") {
+          serialData.dislikes--;
+          dislikeBtn.classList.remove("active");
+        }
+        serialData.likes++;
+        userVote = "like";
+        votes[serialData.title] = "like";
+        likeBtn.classList.add("active");
+      }
+      await saveVoteChange();
+    };
+
+    dislikeBtn.onclick = async () => {
+      if (userVote === "dislike") {
+        serialData.dislikes--;
+        userVote = null;
+        votes[serialData.title] = null;
+        dislikeBtn.classList.remove("active");
+      } else {
+        if (userVote === "like") {
+          serialData.likes--;
+          likeBtn.classList.remove("active");
+        }
+        serialData.dislikes++;
+        userVote = "dislike";
+        votes[serialData.title] = "dislike";
+        dislikeBtn.classList.add("active");
+      }
+      await saveVoteChange();
+    };
+
+    // --- SHARE BUTTON ---
+    const existingMenu = document.getElementById("serial-preview-share-menu");
+    if (existingMenu) existingMenu.remove();
+
+    const shareMenu = document.createElement("div");
+    shareMenu.id = "serial-preview-share-menu";
+    shareMenu.className = "share-menu";
+    shareMenu.style.display = "none";
+    document.body.appendChild(shareMenu);
+
+function getShareLink(platform) {
+  const baseUrl = "https://meurbal.site"; // your live website
+  const link = `${baseUrl}?previewSerial=${encodeURIComponent(serialData.title || "")}`;
+
+  const message = `📖 ${serialData.title || "Untitled"}\nGenre: ${
+    serialData.genre || "—"
+  }\nDescription: ${
+    serialData.description || "No description provided."
+  }\nRead it on Meurbal: ${link}`;
+
+  if (platform === "WhatsApp")
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+  if (platform === "Facebook")
+    return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
+  if (platform === "Twitter")
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+  if (platform === "Copy") return link;
+
+  return link;
+}
+
+
+    [
+      { name: "WhatsApp", emoji: "🟢" },
+      { name: "Facebook", emoji: "🔵" },
+      { name: "Twitter", emoji: "🐦" },
+      { name: "Copy", emoji: "🔗" },
+    ].forEach((opt) => {
+      const btn = document.createElement("button");
+      btn.className = "share-option";
+      btn.innerHTML = `${opt.emoji} ${opt.name}`;
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const link = getShareLink(opt.name);
+        if (opt.name === "Copy") {
+          await navigator.clipboard.writeText(link);
+          btn.textContent = "✅ Copied!";
+          setTimeout(() => (btn.innerHTML = `${opt.emoji} ${opt.name}`), 1200);
+        } else {
+          window.open(link, "_blank");
+        }
+        shareMenu.style.display = "none";
+      });
+      shareMenu.appendChild(btn);
     });
 
-    const epsWrap = document.createElement('div');
-    epsWrap.style.display = 'flex';
-    epsWrap.style.flexDirection = 'column';
-    epsWrap.style.gap = '10px';
+    const shareBtn = document.getElementById("shareSerialBtn");
+    shareBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const rect = shareBtn.getBoundingClientRect();
+      shareMenu.style.top = rect.bottom + 8 + "px";
+      shareMenu.style.left = rect.left + "px";
+      shareMenu.style.display =
+        shareMenu.style.display === "flex" ? "none" : "flex";
+      shareMenu.style.flexDirection = "column";
+    });
 
-    (serial.episodes || []).forEach((ep, i) => {
-      const epCard = document.createElement('div');
-      epCard.className = 'story-card';
-      epCard.style.display = 'flex';
-      epCard.style.justifyContent = 'space-between';
-      epCard.style.alignItems = 'center';
-      epCard.innerHTML = `
-        <div style="max-width:72%">
-          <strong>${i + 1}. ${(ep.title || ('Episode ' + (i + 1))).replace(/</g, '&lt;')}</strong>
-          <div style="font-size:13px;color:var(--muted)">${(ep.description || '').replace(/</g, '&lt;')}</div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-primary read-episode-btn">Read Episode</button>
+    document.addEventListener("click", (e) => {
+      if (!shareMenu.contains(e.target) && e.target !== shareBtn) {
+        shareMenu.style.display = "none";
+      }
+    });
+// --- COMMENTS PANEL ---
+const commentsBtn = document.createElement("button");
+commentsBtn.className = "vote-btn";
+commentsBtn.id = "commentsBtn";
+commentsBtn.innerHTML = "💬 Comments";
+document.querySelector(".vote-bar").appendChild(commentsBtn);
+
+commentsBtn.addEventListener("click", async () => {
+  // --- Create / open panel ---
+  let panel = document.getElementById("commentsPanel");
+  if (panel) panel.remove();
+
+  panel = document.createElement("div");
+  panel.id = "commentsPanel";
+panel.innerHTML = `
+  <style>
+    #commentsPanel {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      animation: fadeIn .25s ease both;
+    }
+
+    .comments-header {
+      background: linear-gradient(135deg,#5b7cff,#00b4d8);
+      padding: 16px 20px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    #closeCommentsBtn {
+      background:none;
+      border:none;
+      color:#fff;
+      font-size:22px;
+      cursor:pointer;
+      padding:0;
+    }
+
+#commentsList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px 80px;
+  background: #f5f7fb;
+}
+
+/* COMMENT CARD LOOK */
+.comment-item {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  animation: fadeUp 0.25s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.comment-user {
+  font-weight: 700;
+  color: #222;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.comment-text {
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #8a8a8a;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.comment-actions button {
+  border: none;
+  background: #eef2ff;
+  padding: 6px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.2s;
+}
+
+.comment-actions button:hover {
+  background: #d9e0ff;
+}
+
+.comment-actions button.active {
+  background: #5b7cff;
+  color: white;
+}
+
+
+    .comment-item b { color: #111; }
+    .comment-item small { color:#888; display:block; margin-top:4px; font-size:12px; }
+
+    .comment-input-area {
+      padding: 12px 20px;
+      border-top: 1px solid #ddd;
+      background: #fafafa;
+      display: flex;
+    }
+
+    .comment-input-area textarea {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      resize: none;
+      font-size: 14px;
+    }
+
+    .comment-input-area button {
+      margin-left: 10px;
+      padding: 10px 16px;
+      border:none;
+      background:#5b7cff;
+      color:#fff;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor:pointer;
+      transition: 0.2s;
+    }
+    .comment-input-area button:hover { background:#4967e0; }
+
+    @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+  </style>
+
+  <div class="comments-header">
+    <span>${serialData.title} — <span id="commentsCount">0</span> Comments</span>
+    <button id="closeCommentsBtn">✕</button>
+  </div>
+
+  <div id="commentsList">Loading comments...</div>
+
+  <div class="comment-input-area">
+    <textarea id="newCommentText" placeholder="Write a comment..." rows="2"></textarea>
+    <button id="sendCommentBtn">Post</button>
+  </div>
+`;
+
+  document.body.appendChild(panel);
+
+  const commentsList = panel.querySelector("#commentsList");
+  const closeBtn = panel.querySelector("#closeCommentsBtn");
+  const sendBtn = panel.querySelector("#sendCommentBtn");
+  const input = panel.querySelector("#newCommentText");
+
+  closeBtn.onclick = () => panel.remove();
+
+  // Firebase comment path
+  const commentsRef = ref(db, `serial_comments/${encodeURIComponent(serialData.title)}/comments`);
+
+async function loadComments() {
+  try {
+    const snap = await get(commentsRef);
+    const countEl = document.getElementById("commentsCount");
+    const username = localStorage.getItem("username") || "Guest";
+
+    if (!snap.exists()) {
+      commentsList.innerHTML = "<p>No comments yet. Be the first!</p>";
+      countEl.textContent = "0";
+      return;
+    }
+
+    const all = snap.val();
+    const arr = Object.values(all).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    countEl.textContent = arr.length;
+
+    commentsList.innerHTML = arr.map(c => {
+      const likes = c.likes ? Object.keys(c.likes).length : 0;
+      const dislikes = c.dislikes ? Object.keys(c.dislikes).length : 0;
+
+      const userLiked = c.likes && c.likes[username];
+      const userDisliked = c.dislikes && c.dislikes[username];
+
+      return `
+        <div class="comment-item" data-id="${c.id}">
+          <div class="comment-user">${c.user}</div>
+          <div class="comment-text">${c.text}</div>
+          <div class="comment-time">${new Date(c.ts).toLocaleString()}</div>
+
+          <div class="comment-actions">
+            <button class="like-btn ${userLiked ? "active" : ""}">
+              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M14 9V5a3 3 0 0 0-6 0v4H5v10h13l2-9h-6z"/></svg>
+              <span>${likes}</span>
+            </button>
+
+            <button class="dislike-btn ${userDisliked ? "active" : ""}">
+              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M10 15v4a3 3 0 0 0 6 0v-4h3V5H6l-2 9h6z"/></svg>
+              <span>${dislikes}</span>
+            </button>
+          </div>
         </div>
       `;
-      epCard.querySelector('.read-episode-btn').addEventListener('click', () => {
-        incrementReadCount(i);
-        openSerialReader(serial.title, i);
-      });
-      epsWrap.appendChild(epCard);
+    }).join("");
+
+    // Attach button handlers
+    commentsList.querySelectorAll(".comment-item").forEach(item => {
+      const id = item.dataset.id;
+      item.querySelector(".like-btn").onclick = () => toggleReaction(id, "like");
+      item.querySelector(".dislike-btn").onclick = () => toggleReaction(id, "dislike");
     });
 
-    inner.appendChild(epsWrap);
-    panel.appendChild(inner);
-
-    closeBtn.addEventListener('click', () => panel.remove());
-
-    refreshUI();
-    window.scrollTo(0, 0);
-
-  } catch (err) {
-    console.error('openSerialPreview error', err);
-    alert('Something went wrong opening preview — check console for details.');
+  } catch (e) {
+    commentsList.innerHTML = "<p>⚠️ Failed to load comments.</p>";
+    console.error(e);
   }
 }
 
 
-// Open dedicated fullscreen reader for a serial episode (separate page div)
-function openSerialReader(serialTitle, episodeIndex) {
-    const saved = loadSavedSerials();
-    const serial = (saved || []).find(s => s.title === serialTitle) || (serialsData || []).find(s => s.title === serialTitle);
-    if (!serial) { alert('Serial not found'); return; }
-    const ep = (serial.episodes || [])[episodeIndex];
-    if (!ep) { alert('Episode not found'); return; }
+// ✅ LIKE / DISLIKE TOGGLE SYSTEM
+async function toggleReaction(commentId, type) {
+  const user = localStorage.getItem("username") || "Guest";
+  const commentRef = ref(db, `serial_comments/${encodeURIComponent(serialData.title)}/comments/${commentId}`);
+  const snap = await get(commentRef);
 
-    // --- CREATE PANEL ---
-    let panel = document.getElementById('serialReaderFull');
-    if (!panel) {
-        panel = document.createElement('div');
-        panel.id = 'serialReaderFull';
-        panel.className = 'reader-full';
-        panel.style.position = 'fixed';
-        panel.style.top = '0';
-        panel.style.left = '0';
-        panel.style.width = '100vw';
-        panel.style.height = '100vh';
-        panel.style.zIndex = '1200';
-        panel.style.background = '#f7f7fb';
-        panel.style.display = 'flex';
-        panel.style.flexDirection = 'column';
-        panel.style.overflow = 'hidden';
-        document.body.appendChild(panel);
-    }
-    panel.innerHTML = '';
+  if (!snap.exists()) return;
+  let c = snap.val();
+  c.likes = c.likes || {};
+  c.dislikes = c.dislikes || {};
 
-    // --- HEADER ---
-    const header = document.createElement('div');
-    header.className = 'reader-header';
-    header.style.display = 'flex';
-    header.style.justifyContent = 'space-between';
-    header.style.alignItems = 'center';
-    header.style.flexShrink = '0';
-    header.style.padding = '12px 18px';
-    header.style.background = '#fff';
-    header.innerHTML = `
-        <div><button class="btn btn-secondary" id="backToSerialBtn">← Back</button></div>
-        <div style="text-align:center;flex:1">
-            <h2 style="margin:6px 0;font-size:16px">${serial.title} — ${ep.title}</h2>
-            <div class="muted" style="font-size:12px">${serial.genre || '—'} • ${ep.description || ''}</div>
-        </div>
-        <div style="width:120px;visibility:hidden"></div>
-    `;
+  // ----- TOGGLE LOGIC -----
+  if (type === "like") {
+    if (c.likes[user]) delete c.likes[user];
+    else { c.likes[user] = true; delete c.dislikes[user]; }
+  }
+  if (type === "dislike") {
+    if (c.dislikes[user]) delete c.dislikes[user];
+    else { c.dislikes[user] = true; delete c.likes[user]; }
+  }
 
-    // --- BODY ---
-    const body = document.createElement('div');
-    body.className = 'reader-body';
-    body.style.flex = '1';
-    body.style.overflowY = 'auto';
-    body.style.padding = '12px';
-    body.style.display = 'flex';
-    body.style.flexDirection = 'column';
-    body.style.alignItems = 'center';
-    body.style.justifyContent = 'flex-start';
+  // ----- FAST UI UPDATE (NO WAITING) -----
+  const item = commentsList.querySelector(`[data-id="${commentId}"]`);
+  const likeBtn = item.querySelector(".like-btn");
+  const dislikeBtn = item.querySelector(".dislike-btn");
 
-    const sheetsArray = (ep.sheets || []).map(s => (typeof s === 'string') ? { content: s } : (s.content ? s : { content: s }));
-    const totalPages = Math.max(1, sheetsArray.length || 1);
-    let currentPage = 0;
+  const likeCount = Object.keys(c.likes).length;
+  const dislikeCount = Object.keys(c.dislikes).length;
 
-    // --- PAGE WRAP & BOX ---
-    const pageWrap = document.createElement('div');
-    pageWrap.style.display = 'flex';
-    pageWrap.style.flexDirection = 'column';
-    pageWrap.style.alignItems = 'center';
-    pageWrap.style.width = '100%';
-    pageWrap.style.boxSizing = 'border-box';
+  // Update count numbers immediately
+  likeBtn.querySelector("span").textContent = likeCount;
+  dislikeBtn.querySelector("span").textContent = dislikeCount;
 
-    const pageBox = document.createElement('div');
-    pageBox.className = 'reader-sheet';
-    pageBox.style.width = '100%';
-    pageBox.style.maxWidth = '880px';
-    pageBox.style.minHeight = '540px';
-    pageBox.style.margin = '20px auto';
-    pageBox.style.padding = '30px 35px';
-    pageBox.style.background = 'linear-gradient(135deg, #fffef9 0%, #fdf8e4 100%)';
-    pageBox.style.border = '1px solid #e5d7b7';
-    pageBox.style.borderRadius = '12px';
-    pageBox.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)';
-    pageBox.style.boxSizing = 'border-box';
-    pageBox.style.fontFamily = `'Georgia', 'Times New Roman', serif`;
-    pageBox.style.fontSize = '16px';
-    pageBox.style.lineHeight = '1.7';
-    pageBox.style.color = '#2e2b23';
-    pageBox.style.textAlign = 'justify';
-    pageBox.style.letterSpacing = '0.3px';
-    pageBox.style.whiteSpace = 'pre-wrap';
-    pageBox.style.overflowWrap = 'break-word';
-    pageBox.style.position = 'relative';
-    pageBox.style.transition = 'all 0.3s ease';
+  // Update button active style instantly
+  likeBtn.classList.toggle("active", !!c.likes[user]);
+  dislikeBtn.classList.toggle("active", !!c.dislikes[user]);
 
-    // --- PAGER ROW ---
-    const pagerRow = document.createElement('div');
-    pagerRow.style.display = 'flex';
-    pagerRow.style.flexWrap = 'wrap';
-    pagerRow.style.alignItems = 'center';
-    pagerRow.style.justifyContent = 'center';
-    pagerRow.style.gap = '6px';
-    pagerRow.style.marginTop = '12px';
-
-    const prevPageBtn = document.createElement('button');
-    prevPageBtn.className = 'btn btn-secondary';
-    prevPageBtn.textContent = '◀ Prev Page';
-
-    const pageIndicator = document.createElement('div');
-    pageIndicator.className = 'muted';
-    pageIndicator.style.minWidth = '80px';
-    pageIndicator.style.textAlign = 'center';
-    pageIndicator.style.fontSize = '14px';
-
-    const nextPageBtn = document.createElement('button');
-    nextPageBtn.className = 'btn btn-primary';
-    nextPageBtn.textContent = 'Next Page ▶';
-
-    const markLastReadBtn = document.createElement('button');
-    markLastReadBtn.className = 'btn btn-warning';
-    markLastReadBtn.textContent = 'Mark Last Read';
-
-    const completeMarkBtn = document.createElement('button');
-    completeMarkBtn.className = 'btn btn-success';
-    completeMarkBtn.textContent = 'Complete Mark';
-    completeMarkBtn.style.display = 'none';
-
-    const removeMarkBtn = document.createElement('button');
-    removeMarkBtn.className = 'btn btn-danger';
-    removeMarkBtn.textContent = 'Remove Last Mark';
-    removeMarkBtn.style.display = 'inline-block';
-
-    // --- SMALL BUTTON STYLE ---
-    function styleButton(btn) {
-        btn.style.padding = '6px 10px';
-        btn.style.fontSize = '14px';
-        btn.style.borderRadius = '6px';
-        btn.style.minWidth = 'auto';
-    }
-    [prevPageBtn, nextPageBtn, markLastReadBtn, completeMarkBtn, removeMarkBtn].forEach(styleButton);
-
-    pagerRow.append(prevPageBtn, pageIndicator, nextPageBtn, markLastReadBtn, completeMarkBtn, removeMarkBtn);
-    pageWrap.append(pageBox, pagerRow);
-    body.appendChild(pageWrap);
-
-    // --- DRAWING CANVAS ---
-    const marksPerPage = {};
-    let drawCanvas = null;
-    let drawContext = null;
-
-    function enableDrawing(canvas, context) {
-        let isDrawing = false;
-        let lastX = 0, lastY = 0;
-
-        // Desktop
-        canvas.addEventListener('mousedown', e => {
-            isDrawing = true;
-            const rect = canvas.getBoundingClientRect();
-            lastX = e.clientX - rect.left;
-            lastY = e.clientY - rect.top;
-        });
-        canvas.addEventListener('mousemove', e => {
-            if (!isDrawing) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            context.beginPath();
-            context.moveTo(lastX, lastY);
-            context.lineTo(x, y);
-            context.stroke();
-            lastX = x;
-            lastY = y;
-        });
-        canvas.addEventListener('mouseup', () => isDrawing = false);
-        canvas.addEventListener('mouseout', () => isDrawing = false);
-
-        // Mobile / Touch
-        canvas.addEventListener('touchstart', e => {
-            e.preventDefault();
-            isDrawing = true;
-            const rect = canvas.getBoundingClientRect();
-            lastX = e.touches[0].clientX - rect.left;
-            lastY = e.touches[0].clientY - rect.top;
-        }, { passive: false });
-
-        canvas.addEventListener('touchmove', e => {
-            e.preventDefault();
-            if (!isDrawing) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.touches[0].clientX - rect.left;
-            const y = e.touches[0].clientY - rect.top;
-            context.beginPath();
-            context.moveTo(lastX, lastY);
-            context.lineTo(x, y);
-            context.stroke();
-            lastX = x;
-            lastY = y;
-        }, { passive: false });
-
-        canvas.addEventListener('touchend', () => isDrawing = false);
-        canvas.addEventListener('touchcancel', () => isDrawing = false);
-    }
-
-    markLastReadBtn.addEventListener('click', () => {
-        if (!drawCanvas) {
-            drawCanvas = document.createElement('canvas');
-            drawCanvas.style.position = 'absolute';
-            drawCanvas.style.top = '0';
-            drawCanvas.style.left = '0';
-            drawCanvas.style.width = '100%';
-            drawCanvas.style.height = '100%';
-            drawCanvas.width = pageBox.clientWidth;
-            drawCanvas.height = pageBox.clientHeight;
-            drawCanvas.style.zIndex = 5;
-            drawCanvas.style.pointerEvents = 'auto';
-            drawCanvas.style.cursor = 'crosshair';
-            pageBox.appendChild(drawCanvas);
-
-            drawContext = drawCanvas.getContext('2d');
-            drawContext.strokeStyle = 'rgba(0,0,0,0.7)';
-            drawContext.lineWidth = 2;
-
-            // Restore previous marks
-            if (marksPerPage[currentPage]) {
-                const img = new Image();
-                img.onload = () => drawContext.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
-                img.src = marksPerPage[currentPage];
-            }
-
-            enableDrawing(drawCanvas, drawContext);
-        }
-        completeMarkBtn.style.display = 'inline-block';
-    });
-
-    completeMarkBtn.addEventListener('click', () => {
-        if (drawCanvas) {
-            marksPerPage[currentPage] = drawCanvas.toDataURL();
-            drawCanvas.style.pointerEvents = 'none';
-        }
-        completeMarkBtn.style.display = 'none';
-    });
-
-    removeMarkBtn.addEventListener('click', () => {
-        if (drawCanvas) {
-            drawCanvas.remove();
-            drawCanvas = null;
-            drawContext = null;
-        }
-        delete marksPerPage[currentPage];
-        completeMarkBtn.style.display = 'none';
-    });
-
-    // --- RENDER PAGE FUNCTION ---
-    function renderPage(idx) {
-        currentPage = Math.max(0, Math.min(idx, totalPages - 1));
-        const sheetObj = sheetsArray[currentPage] || { content: '(No content in this page)' };
-
-        if (typeof sheetObj.content === 'string' && /<[a-z][\s\S]*>/i.test(sheetObj.content)) {
-            pageBox.innerHTML = sheetObj.content;
-        } else {
-            pageBox.textContent = sheetObj.content || '(No content in this page)';
-        }
-
-        pageIndicator.textContent = `Page ${currentPage + 1} / ${totalPages}`;
-        prevPageBtn.disabled = currentPage === 0;
-        nextPageBtn.disabled = currentPage === totalPages - 1;
-
-        if (drawCanvas) {
-            drawCanvas.remove();
-            drawCanvas = null;
-            drawContext = null;
-            completeMarkBtn.style.display = 'none';
-            removeMarkBtn.style.display = 'none';
-        }
-
-        if (marksPerPage[currentPage] && !drawCanvas) {
-            drawCanvas = document.createElement('canvas');
-            drawCanvas.style.position = 'absolute';
-            drawCanvas.style.top = 0;
-            drawCanvas.style.left = 0;
-            drawCanvas.style.width = '100%';
-            drawCanvas.style.height = '100%';
-            drawCanvas.width = pageBox.clientWidth;
-            drawCanvas.height = pageBox.clientHeight;
-            drawCanvas.style.zIndex = 5;
-            drawCanvas.style.pointerEvents = 'none';
-            pageBox.appendChild(drawCanvas);
-            drawContext = drawCanvas.getContext('2d');
-            const img = new Image();
-            img.onload = () => drawContext.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
-            img.src = marksPerPage[currentPage];
-        }
-    }
-
-    prevPageBtn.addEventListener('click', () => renderPage(currentPage - 1));
-    nextPageBtn.addEventListener('click', () => renderPage(currentPage + 1));
-    if (sheetsArray.length === 0) sheetsArray.push({ content: '(No content in this episode yet)' });
-    renderPage(0);
-
-    // --- FOOTER ---
-    const footer = document.createElement('div');
-    footer.style.display = 'flex';
-    footer.style.justifyContent = 'center';
-    footer.style.flexWrap = 'wrap';
-    footer.style.gap = '6px';
-    footer.style.padding = '12px';
-    footer.style.flexShrink = 0;
-    footer.style.background = '#fff';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'btn btn-secondary';
-    prevBtn.textContent = '◀ Prev Episode';
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'btn btn-primary';
-    nextBtn.textContent = 'Next Episode ▶';
-
-    [prevBtn, nextBtn].forEach(styleButton);
-
-    footer.append(prevBtn, nextBtn);
-    panel.append(header, body, footer);
-
-    document.getElementById('backToSerialBtn').addEventListener('click', () => {
-        panel.remove();
-        openSerialPreview(serialTitle);
-    });
-
-    prevBtn.addEventListener('click', () => {
-        if (episodeIndex > 0) openSerialReader(serialTitle, episodeIndex - 1);
-    });
-
-    nextBtn.addEventListener('click', () => {
-        if (episodeIndex < (serial.episodes || []).length - 1) openSerialReader(serialTitle, episodeIndex + 1);
-    });
-
-    window.scrollTo(0, 0);
+  // ----- UPDATE FIREBASE IN BACKGROUND (NO UI FREEZE) -----
+  set(commentRef, c);
 }
 
-// --- DOMContentLoaded Hook --- document.addEventListener('DOMContentLoaded', ()=>{ const browseSerialsBtn = document.getElementById('browseSerialsBtn'); if(browseSerialsBtn){ browseSerialsBtn.addEventListener('click', ()=>{ const welcomePage = document.getElementById('welcomePage'); if(welcomePage) welcomePage.classList.add('hidden'); const serialPage = document.getElementById('serialCategoriesPage'); if(serialPage) serialPage.classList.remove('hidden'); renderBrowseSerials(loadSavedSerials()); }); } if(document.getElementById('serialCategoriesPage') && !document.getElementById('serialsBrowseList')){ renderBrowseSerials(loadSavedSerials()); } }); // --- Optional: Sync serialsData push --- (function(){ try{ if(Array.prototype._origSerialPush == null){ Array.prototype._origSerialPush = Array.prototype.push; } if(window.serialsData && window.serialsData.push){ const orig = window.serialsData.push; window.serialsData.push = function(){ const res = orig.apply(this, arguments); try{ syncSerialsToStorage(); }catch(e){} return res; }; } }catch(e){} })();
+  sendBtn.onclick = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+    const user = localStorage.getItem("username") || "Guest";
+    const newComment = {
+      id: "c_" + Date.now(),
+      user,
+      text,
+      ts: Date.now(),
+    };
+    try {
+      const snap = await get(commentsRef);
+      let comments = snap.exists() ? snap.val() : {};
+      comments[newComment.id] = newComment;
+      await set(commentsRef, comments);
+      input.value = "";
+      await loadComments();
+    } catch (e) {
+      alert("Failed to post comment.");
+      console.error(e);
+    }
+  };
+
+  await loadComments();
+});
+
+    console.log(`✅ openSerialPreview: displayed "${serialData.title}"`);
+  } catch (err) {
+    console.error("❌ openSerialPreview error:", err);
+    alert("Error loading serial preview.");
+  }
+}
+
+// --- AUTO OPEN ON SHARE LINK ---
+(function autoOpenPreviewFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("previewSerial");
+    if (!t) return;
+    setTimeout(() => openSerialPreview(t), 200);
+  } catch (e) {
+    console.warn("Auto-open preview failed:", e);
+  }
+})();
+
+// --- FIXED openSerialReader (cross-device compatible with Firebase fallback) ---
+async function openSerialReader(serialTitle, episodeIndex) {
+  // Load from local first
+  const saved = (typeof loadSavedSerials === 'function') ? loadSavedSerials() : [];
+  let serial = (saved || []).find(s => s.title === serialTitle) ||
+               (window.serialsData || []).find(s => s.title === serialTitle);
+
+  // 🔥 Fallback: Fetch from Firebase if not found locally
+  if (!serial && window._firebase && window._firebase.get) {
+    try {
+      const { db, ref, get } = window._firebase;
+      const snap = await get(ref(db, `serials/${encodeURIComponent(serialTitle)}`));
+      if (snap.exists()) {
+        serial = snap.val();
+        console.log(`✅ Loaded serial "${serialTitle}" from Firebase`);
+        // Cache locally
+        const existing = JSON.parse(localStorage.getItem('savedSerials') || '[]');
+        if (!existing.find(s => s.title === serialTitle)) {
+          existing.push(serial);
+          localStorage.setItem('savedSerials', JSON.stringify(existing));
+        }
+      } else {
+        console.warn(`⚠️ Serial "${serialTitle}" not found in Firebase`);
+      }
+    } catch (err) {
+      console.error('❌ Error fetching serial from Firebase:', err);
+    }
+  }
+
+  if (!serial) {
+    alert('Serial not found');
+    return;
+  }
+
+  const ep = (serial.episodes || [])[episodeIndex];
+  if (!ep) {
+    alert('Episode not found');
+    return;
+  }
+
+  // --- CREATE PANEL ---
+  let panel = document.getElementById('serialReaderFull');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'serialReaderFull';
+    panel.className = 'reader-full';
+    panel.style.cssText = `
+      position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1200;
+      background:#f7f7fb;display:flex;flex-direction:column;overflow:hidden;
+    `;
+    document.body.appendChild(panel);
+  }
+  panel.innerHTML = '';
+
+  // --- HEADER ---
+  const header = document.createElement('div');
+  header.className = 'reader-header';
+  header.style.cssText = `
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 18px;background:#fff;flex-shrink:0;
+  `;
+  header.innerHTML = `
+    <div><button class="btn btn-secondary" id="backToSerialBtn">← Back</button></div>
+    <div style="text-align:center;flex:1">
+      <h2 style="margin:6px 0;font-size:16px">${serial.title} — ${ep.title}</h2>
+      <div class="muted" style="font-size:12px">${serial.genre || '—'} • ${ep.description || ''}</div>
+    </div>
+    <div style="width:120px;visibility:hidden"></div>
+  `;
+
+  // --- BODY ---
+  const body = document.createElement('div');
+  body.className = 'reader-body';
+  body.style.cssText = `
+    flex:1;overflow-y:auto;padding:12px;display:flex;
+    flex-direction:column;align-items:center;justify-content:flex-start;
+  `;
+
+  const sheetsArray = (ep.sheets || []).map(s =>
+    typeof s === 'string' ? { content: s } : (s.content ? s : { content: s })
+  );
+  const totalPages = Math.max(1, sheetsArray.length || 1);
+  let currentPage = 0;
+
+  const pageWrap = document.createElement('div');
+  pageWrap.style.cssText = `
+    display:flex;flex-direction:column;align-items:center;width:100%;
+    box-sizing:border-box;
+  `;
+
+  const pageBox = document.createElement('div');
+  pageBox.className = 'reader-sheet';
+  pageBox.style.cssText = `
+    width:100%;max-width:880px;min-height:540px;margin:20px auto;
+    padding:30px 35px;background:linear-gradient(135deg,#fffef9 0%,#fdf8e4 100%);
+    border:1px solid #e5d7b7;border-radius:12px;box-shadow:0 8px 16px rgba(0,0,0,0.1);
+    box-sizing:border-box;font-family:'Georgia','Times New Roman',serif;
+    font-size:16px;line-height:1.7;color:#2e2b23;text-align:justify;
+    letter-spacing:0.3px;white-space:pre-wrap;overflow-wrap:break-word;
+    position:relative;transition:all 0.3s ease;
+  `;
+
+  const pagerRow = document.createElement('div');
+  pagerRow.style.cssText = `
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+    gap:6px;margin-top:12px;
+  `;
+
+  const prevPageBtn = document.createElement('button');
+  prevPageBtn.className = 'btn btn-secondary';
+  prevPageBtn.textContent = '◀ Prev Page';
+
+  const pageIndicator = document.createElement('div');
+  pageIndicator.className = 'muted';
+  pageIndicator.style.cssText = `
+    min-width:80px;text-align:center;font-size:14px;
+  `;
+
+  const nextPageBtn = document.createElement('button');
+  nextPageBtn.className = 'btn btn-primary';
+  nextPageBtn.textContent = 'Next Page ▶';
+
+  const markLastReadBtn = document.createElement('button');
+  markLastReadBtn.className = 'btn btn-warning';
+  markLastReadBtn.textContent = 'Mark Last Read';
+
+  const completeMarkBtn = document.createElement('button');
+  completeMarkBtn.className = 'btn btn-success';
+  completeMarkBtn.textContent = 'Complete Mark';
+  completeMarkBtn.style.display = 'none';
+
+  const removeMarkBtn = document.createElement('button');
+  removeMarkBtn.className = 'btn btn-danger';
+  removeMarkBtn.textContent = 'Remove Last Mark';
+  removeMarkBtn.style.display = 'inline-block';
+
+  // Small button style helper
+  const styleButton = btn => {
+    btn.style.padding = '6px 10px';
+    btn.style.fontSize = '14px';
+    btn.style.borderRadius = '6px';
+    btn.style.minWidth = 'auto';
+  };
+  [prevPageBtn, nextPageBtn, markLastReadBtn, completeMarkBtn, removeMarkBtn].forEach(styleButton);
+
+  pagerRow.append(prevPageBtn, pageIndicator, nextPageBtn, markLastReadBtn, completeMarkBtn, removeMarkBtn);
+  pageWrap.append(pageBox, pagerRow);
+  body.appendChild(pageWrap);
+
+  // --- Drawing + Page Render ---
+  const marksPerPage = {};
+  let drawCanvas = null;
+  let drawContext = null;
+
+  function renderPage(idx) {
+    currentPage = Math.max(0, Math.min(idx, totalPages - 1));
+    const sheetObj = sheetsArray[currentPage] || { content: '(No content in this page)' };
+
+    if (typeof sheetObj.content === 'string' && /<[a-z][\s\S]*>/i.test(sheetObj.content)) {
+      pageBox.innerHTML = sheetObj.content;
+    } else {
+      pageBox.textContent = sheetObj.content || '(No content in this page)';
+    }
+
+    pageIndicator.textContent = `Page ${currentPage + 1} / ${totalPages}`;
+    prevPageBtn.disabled = currentPage === 0;
+    nextPageBtn.disabled = currentPage === totalPages - 1;
+  }
+
+  prevPageBtn.addEventListener('click', () => renderPage(currentPage - 1));
+  nextPageBtn.addEventListener('click', () => renderPage(currentPage + 1));
+
+  if (sheetsArray.length === 0) sheetsArray.push({ content: '(No content in this episode yet)' });
+  renderPage(0);
+
+  // --- FOOTER ---
+  const footer = document.createElement('div');
+  footer.style.cssText = `
+    display:flex;justify-content:center;flex-wrap:wrap;gap:6px;
+    padding:12px;background:#fff;flex-shrink:0;
+  `;
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn btn-secondary';
+  prevBtn.textContent = '◀ Prev Episode';
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn btn-primary';
+  nextBtn.textContent = 'Next Episode ▶';
+
+  [prevBtn, nextBtn].forEach(styleButton);
+  footer.append(prevBtn, nextBtn);
+
+  panel.append(header, body, footer);
+
+  // --- Button Actions ---
+  document.getElementById('backToSerialBtn').addEventListener('click', () => {
+    panel.remove();
+    if (typeof openSerialPreview === 'function') openSerialPreview(serial);
+  });
+
+  prevBtn.addEventListener('click', () => {
+    if (episodeIndex > 0) openSerialReader(serial.title, episodeIndex - 1);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (episodeIndex < (serial.episodes || []).length - 1)
+      openSerialReader(serial.title, episodeIndex + 1);
+  });
+
+  window.scrollTo(0, 0);
+}
+
 // --- Optional: Sync serialsData push ---
 (function(){
   try{
@@ -6343,7 +6405,12 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <!-- END INJECTION -->
 
+
+<!-- Global fullscreen preview containers (moved outside hidden pages) -->
+<div id="previewFull" class="hidden"></div>
+<div id="readerFull" class="hidden"></div>
 </body>
+
 </html>
 
 
@@ -6674,7 +6741,12 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <!-- END INJECTION -->
 
-</body>) ===== -->
+
+<!-- Global fullscreen preview containers (moved outside hidden pages) -->
+<div id="previewFull" class="hidden"></div>
+<div id="readerFull" class="hidden"></div>
+</body>
+) ===== -->
 <script>
 /* FIREBASE SYNC INTEGRATION
    - Paste this just before 
@@ -6923,7 +6995,12 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <!-- END INJECTION -->
 
+
+<!-- Global fullscreen preview containers (moved outside hidden pages) -->
+<div id="previewFull" class="hidden"></div>
+<div id="readerFull" class="hidden"></div>
 </body>
+
    - Uses your provided firebaseConfig (Realtime Database)
    - Will: init Firebase, load on start, sync periodically and on key events,
      and show a black status box at bottom with saving/loading states.
@@ -6997,7 +7074,9 @@ ensureFirebase(async ()=>{
       }
       fbSetStatus('Loaded ✓');
       if(typeof renderBrowseStories==='function') renderBrowseStories('All');
-      if(typeof renderBrowseSerials==='function') renderBrowseSerials(serials);
+      if(typeof renderBrowseSerials==='function')
+  renderBrowseSerials(serials, { mergeWithSaved: false });
+
     }catch(e){ console.error(e); fbSetStatus('Load error'); }
   }
   window.loadFromFirebase=loadFromFirebase;
@@ -7272,5 +7351,10 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <!-- END INJECTION -->
 
+
+<!-- Global fullscreen preview containers (moved outside hidden pages) -->
+<div id="previewFull" class="hidden"></div>
+<div id="readerFull" class="hidden"></div>
 </body>
+
 </html>
