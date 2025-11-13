@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10169,11 +10170,24 @@ function openSerialOptions(serial, serialIndex) {
   // ---- Close ----
   document.getElementById('closeSerialOpts').onclick = () => popup.remove();
 
-  // ---- Add Episode ----
 document.getElementById('addEpNowBtn').onclick = () => {
-  showAddEpisodeModal(serial, serialIndex);
-};
+  const epTitle = document.getElementById('episodeTitleInput')?.value?.trim();
+  if (!epTitle) return alert("Please enter episode title");
 
+  const newEpisode = { title: epTitle, description: "", sheets: [] };
+
+  if (!window.activeSerial) window.activeSerial = { episodes: [] };
+  window.activeSerial.episodes.push(newEpisode);
+
+  // ✅ Always close serial popup
+  const popup = document.getElementById('serialCreatePopup');
+  if (popup) popup.classList.add('hidden');
+
+  // ✅ Always open episode editor now
+  openEpisodeEditor(newEpisode);
+
+  console.log("✅ New episode added and editor opened:", newEpisode);
+};
 
       const newIndex = serial.episodes.length - 1;
 
@@ -13119,9 +13133,57 @@ function openSerialOptions(serial, serialIndex) {
   // ---- Close ----
   document.getElementById('closeSerialOpts').onclick = () => popup.remove();
 
+  // ---- Add Episode (original logic) ----
 document.getElementById('addEpNowBtn').onclick = () => {
-  showAddEpisodeModal(serial, serialIndex);
+  const epTitle = document.getElementById('episodeTitleInput')?.value?.trim();
+  if (!epTitle) return alert("Please enter episode title");
+
+  const newEpisode = { title: epTitle, description: "", sheets: [] };
+
+  if (!window.activeSerial) window.activeSerial = { episodes: [] };
+  window.activeSerial.episodes.push(newEpisode);
+
+  // ✅ Always close serial popup
+  const popup = document.getElementById('serialCreatePopup');
+  if (popup) popup.classList.add('hidden');
+
+  // ✅ Always open episode editor now
+  openEpisodeEditor(newEpisode);
+
+  console.log("✅ New episode added and editor opened:", newEpisode);
 };
+
+    const newIndex = serial.episodes.length - 1;
+
+    // ✅ Save to Firebase
+    saveSerialToFirebase(serial);
+
+    // ✅ Update localStorage copy
+    serialsData[serialIndex] = serial;
+    localStorage.setItem("serialsData", JSON.stringify(serialsData));
+
+    // ✅ Open editor for new episode
+    createEditorPage(
+      title.trim(),
+      serial.genre,
+      desc.trim(),
+      {
+        isEdit: true,
+        editType: "serial",
+        index: serialIndex,
+        episodeIndex: newIndex
+      }
+    );
+  };
+function openEpisodeEditor(ep) {
+  const editor = document.getElementById('editorPage');
+  if (!editor) return;
+  editor.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  // fill in editor fields
+  const titleField = document.getElementById('editorTitleInput');
+  if (titleField) titleField.value = ep.title || '';
+}
 
   // ---- Delete Serial ----
   document.getElementById('deleteSerialBtn').onclick = async () => {
