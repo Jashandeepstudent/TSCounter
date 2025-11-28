@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PNG → JPG Converter</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f6fa;
+      padding: 30px;
+      text-align: center;
+      color: #333;
+    }
+
+    #uploadBox {
+      background: white;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+      display: inline-block;
+      width: 350px;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      margin-top: 12px;
+      width: 100%;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    #previewBox {
+      margin-top: 25px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #previewImg {
+      width: 220px;
+      border-radius: 12px;
+      display: none;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    }
+
+    #saveBtn {
+      display: none;
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    /* WhatsApp-style toast */
+    #toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 25px;
+      font-size: 15px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 9999;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>PNG → JPG Converter</h2>
+
+  <div id="uploadBox">
+    <input type="file" id="imgInput" accept="image/*">
+    <p>Upload PNG — JPG auto converts</p>
+  </div>
+
+  <div id="previewBox">
+    <img id="previewImg">
+    <button id="saveBtn">Save</button>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast">Saved</div>
+
+  <script>
+    const input = document.getElementById("imgInput");
+    const preview = document.getElementById("previewImg");
+    const saveBtn = document.getElementById("saveBtn");
+
+    let jpgBlob = null;
+    let jpgURL = null;
+    let finalFileName = "image.jpg";
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.innerText = msg;
+      t.style.opacity = "1";
+
+      setTimeout(() => {
+        t.style.opacity = "0";
+      }, 2000);
+    }
+
+    input.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const baseName = file.name.replace(/\.[^/.]+$/, "");
+      finalFileName = baseName + ".jpg";
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = URL.createObjectURL(file);
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob((blob) => {
+          jpgBlob = blob;
+          jpgURL = URL.createObjectURL(blob);
+
+          preview.src = jpgURL;
+          preview.style.display = "block";
+          saveBtn.style.display = "inline-block";
+
+        }, "image/jpeg", 0.9);
+      };
+    });
+
+    saveBtn.addEventListener("click", async () => {
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      // 📱 MOBILE → Save via Share Sheet (WhatsApp style)
+      if (isMobile && navigator.share) {
+        const file = new File([jpgBlob], finalFileName, { type: "image/jpeg" });
+
+        try {
+          await navigator.share({
+            files: [file],
+            title: "Save Image",
+            text: "Save to Photos"
+          });
+
+          // Toast messages
+          if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            showToast("Saved to Photos");
+          } else {
+            showToast("Saved to Gallery");
+          }
+
+        } catch (err) {
+          console.log("Share canceled", err);
+        }
+
+        return;
+      }
+
+      // 💻 DESKTOP → Auto Download
+      const link = document.createElement("a");
+      link.href = jpgURL;
+      link.download = finalFileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      showToast("Downloaded");
+    });
+  </script>
+
+</body>
+</html>
