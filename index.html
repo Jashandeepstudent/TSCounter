@@ -4915,7 +4915,9 @@ function openReaderFullScreen(story) {
     perspective: 2000px;
     width: 880px;
     max-width: 95%;
-    height: 460px;
+   min-height: 60vh;
+height: auto;
+
   `;
   const pageFront = document.createElement("div");
   const pageBack = document.createElement("div");
@@ -4936,6 +4938,11 @@ function openReaderFullScreen(story) {
       backfaceVisibility: "hidden",
       transformStyle: "preserve-3d",
       overflowY: "auto",
+WebkitOverflowScrolling: "touch",
+touchAction: "pan-y",
+whiteSpace: "pre-wrap",  // keeps paragraphs & blank lines
+wordBreak: "break-word", // prevents overflow
+
     });
   });
   pageBack.style.transform = "rotateY(180deg)";
