@@ -5210,6 +5210,60 @@ function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
     el.appendChild(span);
   });
 }
+// ====== PAGE COUNTER ======
+const pageCounter = document.createElement("div");
+pageCounter.id = "pageCounter";
+pageCounter.style.cssText = `
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 15px;
+`;
+pageCounter.textContent = `Page 1 / ${sheets.length}`;
+body.appendChild(pageCounter);
+
+// ====== PAGE NAV BUTTON LOGIC ======
+const prevFullBtn = document.getElementById("prevFullBtn");
+const nextFullBtn = document.getElementById("nextFullBtn");
+
+// 🔥 Counter updater
+function updateCounter() {
+  pageCounter.textContent = `Page ${idx + 1} / ${sheets.length}`;
+}
+
+// 🔥 Flip prev page
+prevFullBtn.onclick = () => {
+  if (idx > 0) {
+    idx--;
+    renderIntoElement(pageFront, idx);
+    updateCounter();
+  }
+};
+
+// 🔥 Flip next page
+nextFullBtn.onclick = () => {
+  if (idx < sheets.length - 1) {
+    idx++;
+    renderIntoElement(pageFront, idx);
+    updateCounter();
+  }
+};
+
+// ====== INITIAL RENDER ======
+renderIntoElement(pageFront, idx);
+updateCounter();
+
+// ====== FIX MOBILE & DESKTOP SCROLL ======
+pageFront.style.overflowY = "auto";
+pageFront.style.WebkitOverflowScrolling = "touch";
+pageFront.style.touchAction = "pan-y";
+
+pageBack.style.overflowY = "auto";
+pageBack.style.WebkitOverflowScrolling = "touch";
+pageBack.style.touchAction = "pan-y";
+
+// ====== FIX BOOK CONTAINER HEIGHT ======
+book.style.height = "auto";
+book.style.minHeight = "60vh";
 
 
   function highlightWordInElement(el, wi) {
