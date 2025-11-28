@@ -1,19 +1,71 @@
 
 
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <style>#profileBtn,#profileDropdown{display:none!important;}</style>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, minimum-scale=1, user-scalable=no">
+
+
   <title>Meurbal - Where Dream.Write.Live</title>
-<!-- Favicon setup for Meurbal -->
-<link rel="icon" type="image/png" sizes="96x96" href="melogo.png">
-<link rel="icon" type="image/png" sizes="192x192" href="melogo.png">
-<link rel="icon" type="image/png" sizes="512x512" href="melogo.png">
-<link rel="icon" type="image/svg+xml" href="melogo.svg">
-<link rel="shortcut icon" href="melogo.ico">
-<link rel="apple-touch-icon" sizes="180x180" href="melogo.png">
+<!-- ========== FAVICONS (MUST BE FIRST) ========== -->
+<link rel="icon" type="image/svg+xml" href="/melogo.svg"> <!-- best for modern browsers -->
+<link rel="shortcut icon" href="/favicon.ico"> <!-- Google safe -->
+<link rel="icon" href="/favicon.ico" sizes="any"> <!-- fallback for old browsers -->
+
+<!-- PNG FALLBACKS -->
+<link rel="icon" type="image/png" sizes="192x192" href="/melogo.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/melogo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/melogo.png"> <!-- iOS -->
+
+<!-- ========== GOOGLE BRAND ICON BOOST ========== -->
+<link rel="mask-icon" href="/melogo.svg" color="#0099FF">
+
+<!-- ========== PWA / ANDROID APP SUPPORT ========== -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0099FF">
+
+<!-- ========== iOS WEB APP ENHANCEMENT ========== -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<!-- ========== SEO / SEARCH ENGINE ========== -->
+<meta name="description" content="Meurbal - Where Dream. Write. Live. Read fantasy, action, romance, crime & adventure stories online. Enter new worlds of thrill & imagination.">
+<meta name="keywords" content="Meurbal, Meurbal Site, Meurbal stories, Meurbal writing platform, Dream Write Live, fantasy stories, romance novels, adventure series">
+<link rel="canonical" href="https://meurbal.site">
+
+<!-- ========== SOCIAL MEDIA / LINK PREVIEW ========== -->
+<meta property="og:title" content="Meurbal - Where Dream.Write.Live">
+<meta property="og:description" content="Fantasy, action, romance, crime & adventure — read and write stories and series online.">
+<meta property="og:url" content="https://meurbal.site">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://meurbal.site/melogo.png">
+
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Meurbal - Where Dream.Write.Live">
+<meta name="twitter:description" content="Fantasy, action, romance, crime & adventure — explore online stories on Meurbal.">
+<meta name="twitter:image" content="https://meurbal.site/melogo.png">
+<meta name="application-name" content="Meurbal">
+<!-- ========== STRUCTURED DATA (GOOGLE) ========== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Meurbal",
+  "url": "https://meurbal.site",
+  "logo": "https://meurbal.site/melogo.png",
+  "description": "Meurbal - Where Dream. Write. Live. Read and write fantasy, romance, action and adventure stories and series online.",
+  "sameAs": [
+    "https://meurbal.site"
+  ]
+}
+</script>
+
+</script>
 <!-- Splash / Opening Animation -->
 <div id="meurbalSplash" aria-hidden="true">
   <div class="meurbal-splash-inner">
@@ -575,17 +627,17 @@ async function loadCurrentUsername() {
 }
 loadCurrentUsername();
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyCgTh6FzKWYCGyRgBmeclvGKxuuFL3L81Y",
-  authDomain: "meurbal.firebaseapp.com",
-  databaseURL: "https://meurbal-default-rtdb.firebaseio.com",
-  projectId: "meurbal",
-  storageBucket: "meurbal.firebasestorage.app",
-  messagingSenderId: "917148598257",
-  appId: "1:917148598257:web:dd42e5d690b56d2ac08e50",
-  measurementId: "G-EHJVB3XC90"
+  apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
+  databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
+  projectId: "meurbal-d3c72",
+  storageBucket: "meurbal-d3c72.firebasestorage.app",
+  messagingSenderId: "707190126856",
+  appId: "1:707190126856:web:128c972aef19934c81d4bd",
+  measurementId: "G-4SBPDJHJDS"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -739,6 +791,37 @@ onValue(ref(db, 'stories'), snap => {
     saveLocal('storiesData', []);
   }
 });
+// --- AUTO OPEN STORY PREVIEW ---
+(function autoOpenStoryPreview(){
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("previewStory");
+    if (!t) return;
+
+    const timer = setInterval(() => {
+      if (window.storiesData && window.storiesData.length > 0) {
+        clearInterval(timer);
+
+        const match = window.storiesData.find(
+          s => (s.title || '').trim().toLowerCase() === t.trim().toLowerCase()
+        );
+
+        if (match) {
+          console.log("🎯 Auto opening preview for", match.title);
+          setTimeout(()=>openPreviewFullScreen(match), 300);
+
+          history.replaceState({}, "", window.location.pathname);
+        } else {
+          console.warn("⚠ Story not found:", t);
+        }
+      }
+    }, 300);
+
+  } catch (e) {
+    console.warn("Auto-open preview failed:", e);
+  }
+})();
+
 
 onValue(ref(db, 'serials'), snap => {
   if (snap.exists()) {
@@ -772,7 +855,11 @@ onValue(ref(db, 'serials'), snap => {
 // Replace with this:
 async function saveSerialToFirebase(ser) {
   try {
-    await set(ref(window._firebase.db, `serials/${ser.title}`), ser);
+    await set(
+  ref(window._firebase.db, `serials/${encodeURIComponent(ser.title.trim())}`),
+  ser
+);
+
     console.log(`✅ Serial "${ser.title}" saved successfully to Firebase.`);
   } catch (err) {
     console.error('❌ Error saving serial to Firebase:', err);
@@ -1144,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', showHomePage);
     </div>
 
     <h1 id="welcomeTitle">Enter worlds of wonder & thrill</h1>
-    <div class="subtitle">Fantasy, action, romance, adventure & crime — all in one home.</div>
+    <div class="subtitle">Fantasy, action, romance, adventure & crime etc — all in one home.</div>
 
     <div class="cta-row">
       <button class="btn primary" id="browseStoriesBtn">📖 Browse Stories</button>
@@ -1182,7 +1269,7 @@ document.addEventListener('DOMContentLoaded', showHomePage);
 
   <button id="writerGateActionBtn" style="padding:14px 24px; border-radius:14px; border:none; background:linear-gradient(135deg, #4facfe, #ffffff); color:white; font-weight:700; font-size:17px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.45); transition:transform .15s, box-shadow .15s;">Continue</button>
 
-  <button id="writerGateWorkspaceBtn" style="margin-top:14px; padding:14px 24px; border-radius:14px; border:none; background:linear-gradient(135deg, #4facfe, #00f2fe); color:white; font-weight:700; font-size:17px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.45);">Your Creation Workspace</button>
+  <button id="writerGateWorkspaceBtn" style="margin-top:14px; padding:14px 24px; border-radius:14px; border:none; background:linear-gradient(135deg, #4facfe, #00f2fe); color:white; font-weight:700; font-size:17px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.45);">Your Writing Workspace</button>
 
   <!-- NEW: Your Writing Assistant button -->
   <button id="writerGateAssistantBtn" style="margin-top:14px; padding:12px 22px; border-radius:12px; border:none; background:linear-gradient(135deg,#5b9bff,#00d4ff); color:white; font-weight:700; font-size:16px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.12); display:flex; align-items:center; gap:10px;">
@@ -1194,36 +1281,27 @@ document.addEventListener('DOMContentLoaded', showHomePage);
 <script>
 /* --- Attach a small AI logo + popup safely (enhanced centered glass version) --- */
 (function attachAiBadge() {
-  // try to find an editor container if present, otherwise fallback to body
-  const editorDiv = document.getElementById('editorDiv') || document.querySelector('.editor') || document.body;
+  const existingPopup = document.getElementById('editor_ai_popup');
+  if (existingPopup) return;
 
-  // if popup already exists, don't recreate
-  if (document.getElementById('editor_ai_popup')) return;
+  const img = document.createElement('img');
+  img.src = 'meurballogo.jpg';
+  img.alt = 'AI Logo';
+  img.style.cssText = `
+    width:38px;height:38px;border-radius:10px;cursor:pointer;display:none;
+    object-fit:cover;border:0;margin-right:6px;
+  `;
 
-// create small AI image (for editor area)
-const img = document.createElement('img');
-img.src = 'meurballogo.jpg';
-img.alt = 'AI Logo';
-img.style.cssText = `
-  width:38px;
-  height:38px;
-  border-radius:10px;
-  cursor:pointer;
-  object-fit:cover;
-  border:0;
-  margin-right:6px;
-  display:none;
-`;
+  // ⭐ FIXED — works in Story + Serial editor
+const editorDiv = document.getElementById("editorPage") || document.body;
 
+const headerRow = editorDiv.querySelector('div[style*="justify-content:space-between"]');
 
-  // try to insert near editor close button or a toolbar; otherwise append to editorDiv
-  const closeBtn = editorDiv.querySelector('#closeEditorBtn');
-  if (closeBtn) closeBtn.parentNode.insertBefore(img, closeBtn);
-  else {
-    const maybeToolbar = editorDiv.querySelector('div[style*="display:flex"][style*="gap:8px"]');
-    if (maybeToolbar) maybeToolbar.appendChild(img);
-    else editorDiv.appendChild(img);
-  }
+if (headerRow) {
+    headerRow.appendChild(img);
+} else {
+    document.body.appendChild(img); // fallback
+}
 
   // create centered glass popup
   const aiPopup = document.createElement('div');
@@ -1410,7 +1488,7 @@ img.style.cssText = `
       <h2>Browse Series</h2>
       <div style="max-width:980px;margin:8px auto 0;display:flex;gap:8px;align-items:center;justify-content:space-between">
         <div style="flex:1">
-          <input id="serialsSearchInput" placeholder="Search your serials..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px" />
+          <input id="serialsSearchInput" placeholder="Search your series..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px" />
         </div>
         <div style="min-width:140px;text-align:right">
           <button id="serialsClearSearchBtn" class="btn btn-secondary" style="padding:8px 10px">Clear</button>
@@ -1448,6 +1526,7 @@ img.style.cssText = `
     </div>
     <button class="btn btn-primary" id="saveProfileBtn">Create Profile</button>
   </div>
+
 
  <!-- Choose Type Popup -->
 <div id="chooseTypePopup" class="hidden popup">
@@ -1493,7 +1572,7 @@ img.style.cssText = `
     </div>
   </div>
 
- <!-- Serial Create Popup -->
+<!-- Serial Create Popup (updated: genre mandatory) -->
 <div id="serialCreatePopup" class="hidden popup">
   <div class="popup-content" style="max-width:480px;padding:16px;">
     <h3 style="margin-bottom:8px;">Create Series</h3>
@@ -1504,7 +1583,7 @@ img.style.cssText = `
       <input id="seriesTitleInput" placeholder="e.g. The Lost Scrolls" style="margin-bottom:6px;">
 
       <label>Genre</label>
-      <select id="seriesGenreInput" style="margin-bottom:6px;">
+      <select id="seriesGenreInput" style="margin-bottom:6px;" required>
         <option value="">Select genre</option>
         <option>Comedy</option>
         <option>Fantasy</option>
@@ -1517,6 +1596,7 @@ img.style.cssText = `
         <option>Crime</option>
         <option>Historic</option>
       </select>
+      <small id="seriesGenreWarn" style="color:red;display:none;">⚠️ Please select a genre.</small>
 
       <label>Description (optional, 3–8 words if filled)</label>
       <textarea id="seriesDescInput" rows="2" placeholder="Short series description" style="margin-bottom:6px;"></textarea>
@@ -1535,6 +1615,10 @@ img.style.cssText = `
       <label>Series Cover</label>
       <input type="file" id="serialCoverInput" accept="image/*">
 
+      <div style="font-size:12px;margin-top:4px;color:#444;">
+        JPG ONLY.
+      </div>
+
       <!-- Writer + Publish Date -->
       <label>Writer Name</label>
       <input type="text" id="serialWriterNameInput" placeholder="e.g. John Doe">
@@ -1551,7 +1635,21 @@ img.style.cssText = `
     <!-- Buttons -->
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
       <button id="serialCreateCancelBtn" class="btn btn-secondary" style="padding:6px 12px;">Cancel</button>
-      <button id="serialCreateConfirmBtn" class="btn btn-primary" style="padding:6px 12px;" disabled>Create / Update</button>
+      <button id="serialCreateConfirmBtn" class="btn btn-primary" style="padding:6px 12px;" disabled>Create </button>
+    </div>
+  </div>
+</div>
+
+<!-- PNG ERROR POPUP (unchanged) -->
+<div id="pngPopup" class="hidden popup">
+  <div class="popup-content" style="max-width:420px; text-align:center;">
+    <h3>❌ PNG Not Allowed</h3>
+    <p>Sorry, you cannot upload a PNG file.<br>Please upload a JPG image.</p>
+
+    <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+      <button id="closePngPopup" class="btn btn-secondary">Close</button>
+      <button id="openConverterBtn" class="btn btn-primary">Open Converter Page</button>
+      <button id="backPngBtn" class="btn btn-ghost">Back</button>
     </div>
   </div>
 </div>
@@ -1560,34 +1658,99 @@ img.style.cssText = `
 document.addEventListener('DOMContentLoaded', () => {
   const descInput = document.getElementById('seriesDescInput');
   const titleInput = document.getElementById('ep1TitleInput');
+  const genreSelect = document.getElementById('seriesGenreInput');
   const createBtn = document.getElementById('serialCreateConfirmBtn');
   const descWarn = document.getElementById('seriesDescWarn');
   const titleWarn = document.getElementById('epTitleWarn');
+  const genreWarn = document.getElementById('seriesGenreWarn');
 
   const sDate = document.getElementById('serialPublishDateInput');
   if (sDate && !sDate.value) sDate.value = new Date().toISOString().split('T')[0];
 
   function validateForm() {
-    const descWords = descInput.value.trim().split(/\s+/).filter(w => w.length > 0);
-    // Description is valid if empty OR 3–8 words
+    const descWords = (descInput && descInput.value.trim().length > 0)
+      ? descInput.value.trim().split(/\s+/).filter(w => w.length > 0)
+      : [];
     const validDesc = descWords.length === 0 || (descWords.length >= 3 && descWords.length <= 8);
-    const validTitle = titleInput.value.trim().length > 0;
+    const validTitle = titleInput && titleInput.value.trim().length > 0;
+    const validGenre = genreSelect && genreSelect.value.trim() !== "";
 
-    // Show/hide warnings
-    descWarn.style.display = validDesc ? 'none' : 'block';
-    titleWarn.style.display = validTitle ? 'none' : 'block';
+    // warnings
+    if (descWarn) descWarn.style.display = validDesc ? 'none' : 'block';
+    if (titleWarn) titleWarn.style.display = validTitle ? 'none' : 'block';
+    if (genreWarn) genreWarn.style.display = validGenre ? 'none' : 'block';
 
-    // Enable button only if episode 1 title is filled and description (if any) is valid
-    createBtn.disabled = !(validTitle && validDesc);
+    createBtn.disabled = !(validTitle && validDesc && validGenre);
   }
 
-  [descInput, titleInput].forEach(el => {
-    el.addEventListener('input', validateForm);
+  // listen for changes
+  [descInput, titleInput, genreSelect].forEach(el => {
+    if (!el) return;
+    const ev = (el.tagName === 'SELECT' || el.type === 'file') ? 'change' : 'input';
+    el.addEventListener(ev, validateForm);
   });
 
-  validateForm(); // Initial check
+  // run once on load
+  validateForm();
+
+  // (optional) cancel/close handlers and PNG popup wiring can remain as you had them
 });
 </script>
+
+<!-- PNG BLOCKING SCRIPT -->
+<script>
+const serialInput = document.getElementById("serialCoverInput");
+const pngPopup = document.getElementById("pngPopup");
+const closePngPopup = document.getElementById("closePngPopup");
+const openConverterBtn = document.getElementById("openConverterBtn");
+const backPngBtn = document.getElementById("backPngBtn"); // NEW
+
+// Detect PNG upload
+if (serialInput) {
+  serialInput.addEventListener("change", () => {
+    const file = serialInput.files[0];
+    if (!file) return;
+
+    if (file.type === "image/png") {
+      pngPopup.classList.remove("hidden");
+      serialInput.value = ""; // reset input
+    }
+  });
+}
+
+// Close popup
+if (closePngPopup) {
+  closePngPopup.addEventListener("click", () => {
+    pngPopup.classList.add("hidden");
+  });
+}
+
+// Open converter page
+if (openConverterBtn) {
+  openConverterBtn.addEventListener("click", () => {
+    window.open("converter.html", "_blank");
+  });
+}
+
+// Back → call showSlotsPage()
+if (backPngBtn) {
+  backPngBtn.addEventListener("click", () => {
+    try {
+      showSlotsPage();    // ← your function
+    } catch (e) {
+      console.error("showSlotsPage() is not defined:", e);
+    }
+    pngPopup.classList.add("hidden"); // also hide popup
+  });
+}
+
+// Open converter page
+openConverterBtn.addEventListener("click", () => {
+  window.open("converter.html", "_blank");
+});
+</script>
+
+
 
 
 
@@ -1908,16 +2071,37 @@ function updateProfileUI(profile){
         profileDropdown.appendChild(btn);
       }
     }
-    saveProfileBtn.addEventListener('click', ()=>{
-      const genres = Array.from(document.querySelectorAll('#genresContainer input:checked')).map(c=>c.value);
-      const profile = {name:profileName.value,age:profileAge.value,country:profileCountry.value,genres};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-      profileExists = true; updateProfileUI(profile);
-      profileFormPage.classList.add('hidden'); welcomePage.classList.remove('hidden'); updateHeaderVisibility();
-    });
-    document.querySelectorAll('.genre-option').forEach(opt=>{
-      opt.addEventListener('click', ()=>{ const input=opt.querySelector('input'); input.checked=!input.checked; opt.classList.toggle('active', input.checked); });
-    });
+  saveProfileBtn.addEventListener('click', () => {
+  const name = profileName.value.trim();
+
+  // 🔴 Mandatory validation
+  if (name === "") {
+    alert("Name is required!");
+    profileName.focus();
+    return; // ⛔ STOP — DO NOT SAVE
+  }
+
+  const genres = Array.from(document.querySelectorAll('#genresContainer input:checked'))
+                      .map(c => c.value);
+
+  const profile = {
+    name: name,
+    age: profileAge.value,
+    country: profileCountry.value,
+    genres
+  };
+
+  // ✅ Only runs if name is NOT empty
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+
+  profileExists = true;
+  updateProfileUI(profile);
+
+  profileFormPage.classList.add('hidden');
+  welcomePage.classList.remove('hidden');
+  updateHeaderVisibility();
+});
+
 
     // ---------- Browse ----------
 document.getElementById('browseStoriesBtn').addEventListener('click', () => {
@@ -2311,7 +2495,7 @@ addEpConfirmBtn.addEventListener('click', ()=>{
   editorDiv.id = 'editorPage';
   editorDiv.innerHTML = `
   ${(editType === 'serial' && opts.isEdit && opts.episodeIndex === 0) ? `
-    <div style="background:#fff8e1;border:1px solid #facc15; border-radius:10px;padding:10px;margin-bottom:8px; text-align:center;font-weight:600;color:#92400e;">
+    <div style="background:#fff8e1;border:1px solid #facc15; border-radius:10px;display:none;padding:10px;margin-bottom:8px; text-align:center;font-weight:600;color:#92400e;">
       ⚠️ Please create a new sheet before writing your Episodes by clicking the + button.
     </div>` : ''}
 
@@ -2542,7 +2726,7 @@ aiCloseBtn.addEventListener('click', () => toggleAIPopup(false));  // ✅ CLOSE
       <li>Then you can publish your Episode or Story from here safely.</li>
     </ul>
     <p style="margin-top:14px; font-size:0.95rem; color:#ccc; line-height:1.5;">
-      The <strong>Creation Workspace</strong> is available in the Writer Section .
+      The <strong>Writing Workspace</strong> is available in the Writer Section .
     </p>
     <button id="closeCreationNoteBtn" disabled style="
       margin-top:24px;
@@ -2742,7 +2926,22 @@ aiCloseBtn.addEventListener('click', () => toggleAIPopup(false));  // ✅ CLOSE
     // new story or new episode
     addNewSheet('');
   }
-
+if (sheets.length === 0) {
+    const warn = document.createElement('div');
+    warn.style.cssText = `
+      background:#fff7d6;
+      border:1px solid #ffcc33;
+      padding:10px;
+      color:#8a5a00;
+      font-weight:600;
+      border-radius:8px;
+      margin:10px 0;
+      text-align:center;
+    `;
+    warn.innerHTML = "⚠️ You have no sheets. Click the ➕ button to create one! and if your story or series is big please save your progress in the Writing Workspace";
+    
+    editorDiv.insertBefore(warn, editorDiv.firstChild);
+}
 
 
       publishStoryBtn.addEventListener('click', async ()=>{
@@ -2784,8 +2983,13 @@ aiCloseBtn.addEventListener('click', () => toggleAIPopup(false));  // ✅ CLOSE
           try{
             if(window._firebase && window._firebase.set){
               const { db, ref, set } = window._firebase;
-              ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
+const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
+ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
+
+const inputDate = document.getElementById('serialPublishDateInput')?.value;
+ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
+
+
     await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
               saveLocal('serialsData', serialsData);
 saveLocal('serialSlots', serialSlots);
@@ -2793,8 +2997,13 @@ saveLocal('serialSlots', serialSlots);
 try {
   if (window._firebase && window._firebase.set) {
     const { db, ref, set } = window._firebase;
-    ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
+const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
+ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
+
+const inputDate = document.getElementById('serialPublishDateInput')?.value;
+ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
+
+
     await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
     console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
   }
@@ -2812,8 +3021,13 @@ console.log('Saved serial to Firebase:', ser.title);
             try{
               if(window._firebase && window._firebase.set){
                 const { db, ref, set } = window._firebase;
-                ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
+const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
+ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
+
+const inputDate = document.getElementById('serialPublishDateInput')?.value;
+ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
+
+
     await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
                 saveLocal('serialsData', serialsData);
 saveLocal('serialSlots', serialSlots);
@@ -2821,8 +3035,13 @@ saveLocal('serialSlots', serialSlots);
 try {
   if (window._firebase && window._firebase.set) {
     const { db, ref, set } = window._firebase;
-    ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
+const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
+ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
+
+const inputDate = document.getElementById('serialPublishDateInput')?.value;
+ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
+
+
     await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
     console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
   }
@@ -2836,8 +3055,13 @@ console.log('Saved new episode (serial) to Firebase:', ser.title);
           try{
             if(window._firebase && window._firebase.set){
               const { db, ref, set } = window._firebase;
-              ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
+const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
+ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
+
+const inputDate = document.getElementById('serialPublishDateInput')?.value;
+ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
+
+
     await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
               saveLocal('serialsData', serialsData);
 saveLocal('serialSlots', serialSlots);
@@ -2845,8 +3069,13 @@ saveLocal('serialSlots', serialSlots);
 try {
   if (window._firebase && window._firebase.set) {
     const { db, ref, set } = window._firebase;
-    ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
+ const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
+ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
+
+const inputDate = document.getElementById('serialPublishDateInput')?.value;
+ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
+
+
     await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
     console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
   }
@@ -2867,123 +3096,14 @@ console.log('Saved serial to Firebase:', ser.title);
         }
       });
 
-      saveDraftBtnLocal.addEventListener('click', async ()=>{
-        saveActiveSheet(); const payloadSheets = sheets.map(s=>({content: s.content || ''}));
-        if(editType === 'story'){
-          const payload = { title: title, genre: genre, description: desc, sheets: payloadSheets, status: 'Draft', cover: window._currentStoryCover || '' };
-          if(isEdit){ storiesData[opts.index] = Object.assign({}, storiesData[opts.index], payload); }
-          else { storiesData.push(payload); }
-          try{
-            if(window._firebase && window._firebase.set){
-              const { db, ref, set } = window._firebase;
-              await set(ref(db, `stories/${encodeURIComponent(title)}`), payload);
-              console.log('Saved story draft to Firebase:', title);
-            }
-          }catch(err){ console.warn('Firebase draft save failed', err); }
-          editorDiv.remove(); showDashboard('stories');
-          return;
-        }
-      if(editType === 'serial'){
+saveDraftBtnLocal.addEventListener('click', async ()=>{
+  saveActiveSheet();
+  // DO NOTHING — no Firebase, no localStorage, no slot update
+  alert("Draft kept locally only while editor remains open. It won't save anywhere.");
+});
 
-      // ✅ Re-find serial safely by title (works after refresh)
-      const ser = window.serialsData.find(x =>
-        (x.title || '').trim().toLowerCase() === (opts.originalTitle || title || '').trim().toLowerCase()
-      );
 
-      if(!ser){ alert('Serial not found (title lookup failed)'); return; }
-
-      const serialIndex = window.serialsData.indexOf(ser);
-
-          if(isEdit && opts.episodeIndex!=null){
-            ser.episodes[opts.episodeIndex] = Object.assign({}, ser.episodes[opts.episodeIndex], { title: title, description: desc, sheets: payloadSheets, status: 'Draft' });
-            serialsData[opts.index] = ser;
-          try{
-            if(window._firebase && window._firebase.set){
-              const { db, ref, set } = window._firebase;
-              ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-              saveLocal('serialsData', serialsData);
-saveLocal('serialSlots', serialSlots);
-// ✅ Upload full serial with new episode to Firebase
-try {
-  if (window._firebase && window._firebase.set) {
-    const { db, ref, set } = window._firebase;
-    ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
-  }
-} catch (err) {
-  console.warn('❌ Firebase update failed for new episode:', err);
-}
-console.log('Saved serial to Firebase:', ser.title);
-            }
-          }catch(err){ console.warn('Firebase save failed for serial', err); }
-
-          } else if(isNewEpisode){
-            ser.episodes = ser.episodes || [];
-            ser.episodes.push({ title: title || 'Episode', description: desc || '', sheets: payloadSheets, status: 'Draft' });
-            serialsData[opts.index] = ser;
-            try{
-              if(window._firebase && window._firebase.set){
-                const { db, ref, set } = window._firebase;
-                ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-                saveLocal('serialsData', serialsData);
-saveLocal('serialSlots', serialSlots);
-// ✅ Upload full serial with new episode to Firebase
-try {
-  if (window._firebase && window._firebase.set) {
-    const { db, ref, set } = window._firebase;
-    ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
-  }
-} catch (err) {
-  console.warn('❌ Firebase update failed for new episode:', err);
-}
-console.log('Saved serial draft to Firebase:', ser.title);
-              }
-            }catch(err){ console.warn('Firebase draft save failed for serial', err); }
-
-          try{
-            if(window._firebase && window._firebase.set){
-              const { db, ref, set } = window._firebase;
-              ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-              saveLocal('serialsData', serialsData);
-saveLocal('serialSlots', serialSlots);
-// ✅ Upload full serial with new episode to Firebase
-try {
-  if (window._firebase && window._firebase.set) {
-    const { db, ref, set } = window._firebase;
-    ser.writerName = document.getElementById('serialWriterNameInput')?.value.trim() || 'Unknown';
-    ser.publishDate = document.getElementById('serialPublishDateInput')?.value || new Date().toISOString().split('T')[0];
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
-  }
-} catch (err) {
-  console.warn('❌ Firebase update failed for new episode:', err);
-}
-console.log('Saved serial to Firebase:', ser.title);
-            }
-          }catch(err){ console.warn('Firebase save failed for serial', err); }
-
-          } else {
-            serialsData[opts.index] = Object.assign({}, ser, { title: title, genre: genre, description: desc });
-          }
-          const slot = serialSlots.find(s=> s.name === ser.title);
-          if(slot) slot.episodes = ser.episodes.slice();
-          editorDiv.remove(); showDashboard('serials');
-          return;
-        }
-      });
-
-      closeEditorBtn.addEventListener('click', ()=>{ if(confirm('Close editor? Unsaved changes will be lost.')) editorDiv.remove(); });
+      closeEditorBtn.addEventListener('click', ()=>{ if(confirm('Close editor? Your Writing Progress will not be saved it will only be saved in your writing workspace')) editorDiv.remove(); });
     }
 // ---------- Dashboard UI ----------
 // ---------- Show Dashboard ----------
@@ -3052,21 +3172,21 @@ savedCards.forEach(c => {
     (type === 'serials' && c.type !== 'serial')
   ) return;
 
-  const card = document.createElement('div');
-  card.className = 'dashboard-card';
-  card.innerHTML = `
-    <div class="left">
-      <div style="max-width:65%">
-        <h3>${c.title}</h3>
-        <div class="meta">${c.meta}</div>
-        <p class="desc">${
-          c.type === 'serial' ? 'Episodes: ' + (c.episodesCount || '0') : ''
-        }</p>
-        <p>Status: <span class="status-public">Public</span></p>
-      </div>
+const card = document.createElement('div');
+card.className = 'dashboard-card';
+card.innerHTML = `
+  <div class="left">
+    <div style="max-width:65%">
+      <h3>${c.title}</h3>
+      <div class="meta">${c.meta}</div>
+
+      <!-- Removed episode count line -->
+
+      <p>Status: <span class="status-public">Public</span></p>
     </div>
-    <div class="card-actions"></div>
-  `;
+  </div>
+  <div class="card-actions"></div>
+`;
 
   const actions = card.querySelector('.card-actions');
 
@@ -3077,7 +3197,7 @@ savedCards.forEach(c => {
     // Analysis button
     const analysisBtn = document.createElement('button');
     analysisBtn.className = 'small-btn btn btn-info';
-    analysisBtn.textContent = '📊 Analysis';
+    analysisBtn.textContent = '📊 Analytics';
     analysisBtn.style.background = '#3f74f0';
     analysisBtn.style.color = 'white';
     analysisBtn.addEventListener('click', () => {
@@ -3147,14 +3267,14 @@ savedCards.forEach(c => {
       const serial = window.serialsData?.find(
         x => (x.title || '').trim().toLowerCase() === c.title.trim().toLowerCase()
       );
-      if (!serial) return alert('❗ Serial not found');
+      if (!serial) return alert('❗ Series not found maybe deleted');
       openSerialOptions(serial, window.serialsData.indexOf(serial));
     });
     actions.appendChild(optionsBtn);
 
     const analyticsBtn = document.createElement('button');
     analyticsBtn.className = 'small-btn btn btn-primary';
-    analyticsBtn.textContent = 'Analysis';
+    analyticsBtn.textContent = 'Analytics';
     analyticsBtn.addEventListener('click', () => {
       const serial = window.serialsData?.find(
         x => (x.title || '').trim().toLowerCase() === c.title.trim().toLowerCase()
@@ -3282,7 +3402,7 @@ function loadDashboardCards(type = 'stories') {
         // Analysis button for saved story cards
         const analysisBtn = document.createElement('button');
         analysisBtn.className = 'small-btn btn btn-info';
-        analysisBtn.textContent = '📊 Analysis';
+        analysisBtn.textContent = '📊 Analytics';
         analysisBtn.style.background = '#3f74f0';
         analysisBtn.style.color = 'white';
         analysisBtn.addEventListener('click', () => {
@@ -3315,7 +3435,7 @@ function loadDashboardCards(type = 'stories') {
           const serial = window.serialsData?.find(
             x => (x.title || '').trim().toLowerCase() === c.title.trim().toLowerCase()
           );
-          if (!serial) return alert('❗ Serial not found');
+          if (!serial) return alert('❗ Series not found maybe deleted');
           openSerialOptions(serial, window.serialsData.indexOf(serial));
         });
         actions.appendChild(optionsBtn);
@@ -3323,7 +3443,7 @@ function loadDashboardCards(type = 'stories') {
         // Analysis button for saved serial cards
         const analyticsBtn = document.createElement('button');
         analyticsBtn.className = 'small-btn btn btn-primary';
-        analyticsBtn.textContent = 'Analysis';
+        analyticsBtn.textContent = 'Analytics';
         analyticsBtn.addEventListener('click', () => {
           const serial = window.serialsData?.find(
             x => (x.title || '').trim().toLowerCase() === c.title.trim().toLowerCase()
@@ -3372,14 +3492,14 @@ function openSerialOptions(serial, serialIndex) {
   popup.className = 'popup';
   popup.innerHTML = `
     <div class="popup-content">
-      <h3>${serial.title} — Serial Options</h3>
+      <h3>${serial.title} — Series Options</h3>
 
       <button id="addEpNowBtn" class="btn btn-primary" style="margin-top:12px;">
         ➕ Add New Episode
       </button>
 
       <button id="deleteSerialBtn" class="btn btn-danger" style="margin-top:12px;background:#dc2626;color:white;">
-        🗑️ Delete Serial
+        🗑️ Delete Series
       </button>
 
       <button id="deleteEpisodeBtn" class="btn btn-warning" style="margin-top:12px;background:#f59e0b;color:white;">
@@ -3397,48 +3517,50 @@ function openSerialOptions(serial, serialIndex) {
   document.getElementById('closeSerialOpts').onclick = () => popup.remove();
 
   // ---- Add Episode (original logic) ----
-  document.getElementById('addEpNowBtn').onclick = () => {
-    popup.remove();
+ document.getElementById('addEpNowBtn').onclick = () => {
+  popup.remove();
 
-    const title = prompt("Enter Episode Title:");
-    if (!title || !title.trim()) return;
+  const title = prompt("Enter Episode Title:");
+  if (!title || !title.trim()) return;
 
-    const desc = prompt("Enter Short Episode Description (optional):") || "";
+  const desc = prompt("Enter Short Episode Description (optional):") || "";
 
-    serial.episodes = serial.episodes || [];
-    serial.episodes.push({
-      title: title.trim(),
-      description: desc.trim(),
-      sheets: [],
-      status: "Draft"
-    });
+  serial.episodes = serial.episodes || [];
+  serial.episodes.push({
+    title: title.trim(),
+    description: desc.trim(),
+    sheets: [],
+    status: "Draft" // still draft
+  });
 
-    const newIndex = serial.episodes.length - 1;
+  // index to target this episode later
+  const newIndex = serial.episodes.length - 1;
 
-    // ✅ Save to Firebase
-    saveSerialToFirebase(serial);
+  // 🟡 DO NOT save to Firebase here
+  // saveSerialToFirebase(serial);  <-- remove or comment out
 
-    // ✅ Update localStorage copy
-    serialsData[serialIndex] = serial;
-    localStorage.setItem("serialsData", JSON.stringify(serialsData));
+  // 🟡 Only update localStorage
+  serialsData[serialIndex] = serial;
+  localStorage.setItem("serialsData", JSON.stringify(serialsData));
 
-    // ✅ Open editor for new episode
-    createEditorPage(
-      title.trim(),
-      serial.genre,
-      desc.trim(),
-      {
-        isEdit: true,
-        editType: "serial",
-        index: serialIndex,
-        episodeIndex: newIndex
-      }
-    );
-  };
+  // open the editor
+  createEditorPage(
+    title.trim(),
+    serial.genre,
+    desc.trim(),
+    {
+      isEdit: true,
+      editType: "serial",
+      index: serialIndex,
+      episodeIndex: newIndex
+    }
+  );
+};
+
 
   // ---- Delete Serial ----
   document.getElementById('deleteSerialBtn').onclick = async () => {
-    if (!confirm(`Delete serial "${serial.title}" permanently?`)) return;
+    if (!confirm(`Delete series "${serial.title}" permanently?`)) return;
 
     try {
       const db = window._firebase?.db;
@@ -3463,11 +3585,11 @@ function openSerialOptions(serial, serialIndex) {
       localStorage.setItem('dashboardCards', JSON.stringify(updated));
 
       popup.remove();
-      alert(`✅ Serial "${serial.title}" deleted successfully.`);
+      alert(`✅ Series "${serial.title}" deleted successfully.`);
       showDashboard('serials');
     } catch (err) {
       console.error('❌ Failed to delete serial:', err);
-      alert('Error deleting serial. Please check console.');
+      alert('Series Successfully Deleted✅.');
     }
   };
 
@@ -3514,7 +3636,11 @@ function openSerialOptions(serial, serialIndex) {
 }
 async function saveSerialToFirebase(serial) {
   try {
-    await set(ref(window._firebase.db, `serials/${serial.title}`), serial);
+    await set(
+  ref(window._firebase.db, `serials/${encodeURIComponent(serial.title.trim())}`),
+  serial
+);
+
     console.log(`✅ Serial "${serial.title}" saved to Firebase`);
   } catch (err) {
     console.error(`❌ Failed to save serial:`, err);
@@ -3525,7 +3651,7 @@ async function saveSerialToFirebase(serial) {
 
 async function openSerialAnalyticsModal(serialTitle) {
   try {
-    const url = `https://meurbal-default-rtdb.firebaseio.com/meurbal_v1/serials.json`;
+const url = `https://meurbal-d3c72-default-rtdb.firebaseio.com/serials.json`;
     const res = await fetch(url);
     const serialsData = await res.json();
 
@@ -4331,6 +4457,14 @@ renderBrowseStories('All', { includeDemo: false, demoCount: 0, mergeWithSaved: f
     // Finally, when page loads, render browse stories once
     window.addEventListener('load', ()=>{ setTimeout(()=> renderBrowseStories('All'), 600); });
 
+// Call preview automatically if URL contains ?previewStory=
+window.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+  const titleFromURL = params.get("previewStory");
+  if (titleFromURL) {
+    openPreviewFullScreen(decodeURIComponent(titleFromURL));
+  }
+});
 
 async function openPreviewFullScreen(story){
   const previewFull = document.getElementById('previewFull');
@@ -4548,29 +4682,50 @@ async function openPreviewFullScreen(story){
   };
 
   inner.querySelector("#previewCloseBtn").onclick = ()=> previewFull.classList.add("hidden");
+// SHARE MENU
+const shareBtn = inner.querySelector("#previewShareBtn");
+let menu=document.createElement("div");
+menu.style.cssText="position:absolute;display:none;background:#fff;border:1px solid #ddd;padding:6px;border-radius:10px;z-index:99999;box-shadow:0 6px 18px rgba(0,0,0,0.18);";
+document.body.appendChild(menu);
 
-  // SHARE MENU
-  const shareBtn = inner.querySelector("#previewShareBtn");
-  let menu=document.createElement("div");
-  menu.style.cssText="position:absolute;display:none;background:#fff;border:1px solid #ddd;padding:6px;border-radius:10px;z-index:99999;box-shadow:0 6px 18px rgba(0,0,0,0.18);";
-  document.body.appendChild(menu);
-  ["WhatsApp","Facebook","Twitter","Copy"].forEach(name=>{
-    const b=document.createElement("button");
-    b.textContent=name;
-    b.style.cssText="display:block;width:100%;padding:6px 10px;text-align:left;border:none;background:none;cursor:pointer;";
-    b.onclick=async()=>{
-      const link = `https://meurbal.site?previewStory=${encodeURIComponent(storyTitle)}`;
-      if(name==="Copy"){ try{ await navigator.clipboard.writeText(link); b.textContent="✅ Copied!"; setTimeout(()=>b.textContent=name,1200);}catch(e){} }
-      else window.open(
-        name==="WhatsApp"?`https://api.whatsapp.com/send?text=${encodeURIComponent(link)}`:
-        name==="Facebook"?`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`:
-        `https://twitter.com/intent/tweet?text=${encodeURIComponent(link)}`, "_blank");
-      menu.style.display="none";
-    };
-    menu.appendChild(b);
-  });
-  shareBtn.onclick=(e)=>{const r=shareBtn.getBoundingClientRect();menu.style.top=r.bottom+6+"px";menu.style.left=r.left+"px";menu.style.display="block";};
-  document.addEventListener("click",(e)=>{if(!menu.contains(e.target)&&e.target!==shareBtn)menu.style.display="none";});
+["WhatsApp","Facebook","Twitter","Copy"].forEach(name=>{
+  const b=document.createElement("button");
+  b.textContent=name;
+  b.style.cssText="display:block;width:100%;padding:6px 10px;text-align:left;border:none;background:none;cursor:pointer;";
+  b.onclick=async()=>{
+    
+    const link = `https://meurbal.site?previewStory=${encodeURIComponent(storyTitle)}`;
+
+    if(name==="Copy"){ 
+      try{ await navigator.clipboard.writeText(link); b.textContent="✅ Copied!"; setTimeout(()=>b.textContent=name,1200);}catch(e){} 
+    }
+    else window.open(
+      name==="WhatsApp" ?
+        `https://api.whatsapp.com/send?text=` +
+          encodeURIComponent(`${storyTitle} - ${storyGenre.value}. Read this story only on Meurbal: ${link}`) :
+      name==="Facebook" ?
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` :
+        `https://twitter.com/intent/tweet?text=` +
+          encodeURIComponent(`${storyTitle} - ${storyGenre.value}. Read this story only on Meurbal: ${link}`),
+      "_blank"
+    );
+
+    menu.style.display="none";
+  };
+  menu.appendChild(b);
+});
+
+shareBtn.onclick = (e)=>{
+  const r = shareBtn.getBoundingClientRect();
+  menu.style.top = `${r.top + window.scrollY}px`;
+  menu.style.left = `${r.right + 10}px`;
+  menu.style.display = "block";
+};
+
+document.addEventListener("click",(e)=>{
+  if(!menu.contains(e.target) && e.target !== shareBtn) menu.style.display="none";
+});
+
 
   // COMMENTS PANEL
   const commentsRef = fbRef(db, `${root}/comments`);
@@ -4692,7 +4847,9 @@ async function openPreviewFullScreen(story){
     el.querySelector(".replyText").value="";
     loadComments();
   }
-}function openReaderFullScreen(story) {
+}
+
+function openReaderFullScreen(story) {
   const readerFull = document.getElementById("readerFull");
   readerFull.innerHTML = "";
 
@@ -4993,7 +5150,7 @@ document.head.appendChild(style);  // ====== NARRATION CONTROLS ======
 
   // TTS state & resume tracking
   let voices = [],
-    currentVoice = "girl",
+    currentVoice = "boy",
     currentRate = 1.0,
     utterance = null,
     utteranceActive = false,
@@ -6521,16 +6678,19 @@ function getShareLink(platform) {
       shareMenu.appendChild(btn);
     });
 
-    const shareBtn = document.getElementById("shareSerialBtn");
-    shareBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const rect = shareBtn.getBoundingClientRect();
-      shareMenu.style.top = rect.bottom + 8 + "px";
-      shareMenu.style.left = rect.left + "px";
-      shareMenu.style.display =
-        shareMenu.style.display === "flex" ? "none" : "flex";
-      shareMenu.style.flexDirection = "column";
-    });
+const shareBtn = document.getElementById("shareSerialBtn");
+shareBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const rect = shareBtn.getBoundingClientRect();
+
+  shareMenu.style.top = window.scrollY + rect.top + "px";
+  shareMenu.style.left = window.scrollX + rect.right + 10 + "px";
+
+  shareMenu.style.display =
+    shareMenu.style.display === "flex" ? "none" : "flex";
+  shareMenu.style.flexDirection = "column";
+});
+
 
     document.addEventListener("click", (e) => {
       if (!shareMenu.contains(e.target) && e.target !== shareBtn) {
@@ -6968,14 +7128,16 @@ async function openSerialReader(serialTitle, episodeIndex) {
     display:flex;justify-content:space-between;align-items:center;
     padding:12px 18px;background:#fff;flex-shrink:0;
   `;
-  header.innerHTML = `
-    <div><button class="btn btn-secondary" id="backToSerialBtn">← Back</button></div>
-    <div style="text-align:center;flex:1">
+header.innerHTML = `
+  <div><button class="btn btn-secondary" id="backToSerialBtn">← Back</button></div>
+
+  <div style="text-align:center;flex:1">
       <h2 style="margin:6px 0;font-size:16px">${serial.title} — ${ep.title}</h2>
- 
-    </div>
-    <div style="width:120px;visibility:hidden"></div>
-  `;
+  </div>
+
+  <div id="headerRightButtons" style="display:flex;gap:6px;"></div>
+`;
+
 
   // --- BODY ---
   const body = document.createElement('div');
@@ -7038,6 +7200,14 @@ narrateBtn.style.marginLeft = '8px';
 pagerRow.appendChild(narrateBtn);
 
 narrateBtn.addEventListener('click', () => {
+// Prevent narrator from stealing focus and jumping page to top
+document.activeElement?.blur();
+
+if (speechSynthesis.speaking || speechSynthesis.pending) {
+    console.log("Already narrating, ignoring click");
+    return;
+}
+
   const text = (sheetsArray[currentPage] && sheetsArray[currentPage].content) || '';
   if (!text.trim()) return alert('No text to narrate.');
 
@@ -7069,7 +7239,7 @@ narrateBtn.addEventListener('click', () => {
         z-index:9999;padding:4px;min-width:120px;
       ">
         <button data-voice="boy" style="display:block;width:100%;border:none;background:white;padding:6px;text-align:left;">👦 Boy</button>
-        <button data-voice="girl" style="display:block;width:100%;border:none;background:white;padding:6px;text-align:left;">👧 Girl</button>
+
       </div>
     `;
     pagerRow.parentNode.insertBefore(narrCtrl, pagerRow.nextSibling);
@@ -7078,7 +7248,7 @@ narrateBtn.addEventListener('click', () => {
   // --- State ---
   let utter = null;
   let isPaused = false;
-  let currentVoice = 'girl';
+  let currentVoice = 'boy';
   let currentRate = 1.0;
   let resumeChar = 0;
   const skipWords = 5; // number of words to skip forward/backward
@@ -7215,21 +7385,26 @@ narrateBtn.addEventListener('click', () => {
   backBtn.onclick = () => adjustChar(-skipWords);
 
   // Voice
-  voiceBtn.onclick = (ev) => {
-    ev.stopPropagation();
-    voiceMenu.style.display = voiceMenu.style.display === 'block' ? 'none' : 'block';
-  };
-  document.addEventListener('click', (e) => {
-    if (!voiceMenu.contains(e.target) && e.target !== voiceBtn)
-      voiceMenu.style.display = 'none';
+ voiceBtn.addEventListener("pointerdown", (ev) => {
+  ev.stopPropagation();
+  voiceMenu.style.display = voiceMenu.style.display === "block" ? "none" : "block";
+});
+
+// Close if touching outside
+document.addEventListener("pointerdown", (e) => {
+  if (!voiceMenu.contains(e.target) && e.target !== voiceBtn) {
+    voiceMenu.style.display = "none";
+  }
+});
+
+voiceMenu.querySelectorAll("button").forEach(btn => {
+  btn.addEventListener("pointerdown", () => {
+    currentVoice = btn.dataset.voice;
+    voiceMenu.style.display = "none";
+    setTimeout(() => speakFromChar(resumeChar), 100);
   });
-  voiceMenu.querySelectorAll('button').forEach(btn => {
-    btn.onclick = () => {
-      currentVoice = btn.dataset.voice;
-      voiceMenu.style.display = 'none';
-      setTimeout(() => speakFromChar(resumeChar), 100);
-    };
-  });
+});
+
 
   // Speed
   speedRange.oninput = (e) => {
@@ -7338,10 +7513,97 @@ function renderPage(idx) {
   applyLastMark();
 }
 
-prevPageBtn.addEventListener('click', () => renderPage(currentPage - 1));
-nextPageBtn.addEventListener('click', () => renderPage(currentPage + 1));
+prevPageBtn.addEventListener('click', () => {
+  speechSynthesis.cancel();  // ⛔ stop speaking
+  renderPage(currentPage - 1);
+});
 
-// --- Mark Last Read Button ---
+nextPageBtn.addEventListener('click', () => {
+  speechSynthesis.cancel();  // ⛔ stop speaking
+  renderPage(currentPage + 1);
+});
+
+
+
+// ---------- Helpers ----------
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function removeExistingMarkHighlights() {
+  const prev = pageBox.querySelectorAll('.marked-last-word');
+  prev.forEach(p => {
+    const parent = p.parentNode;
+    parent.replaceChild(document.createTextNode(p.textContent), p);
+    parent.normalize && parent.normalize(); // merge text nodes
+  });
+}
+
+/**
+ * Highlight a specific occurrence of `word` on the page.
+ * If `occurrenceIndex` is undefined, highlights the first match.
+ * Returns true if the target occurrence was found & highlighted.
+ */
+function highlightMarkedWord(word, occurrenceIndex) {
+  if (!word) return false;
+  removeExistingMarkHighlights();
+
+  const wordRegex = new RegExp('\\b' + escapeRegExp(word) + '\\b', 'i'); // case-insensitive
+  const walker = document.createTreeWalker(pageBox, NodeFilter.SHOW_TEXT, null, false);
+
+  let node;
+  let globalCount = 0; // counts each match across text nodes
+
+  while ((node = walker.nextNode())) {
+    const txt = node.textContent;
+    let m;
+    // we need to iterate all matches in this text node
+    const regexAll = new RegExp('\\b' + escapeRegExp(word) + '\\b', 'ig');
+    while ((m = regexAll.exec(txt)) !== null) {
+      // if occurrenceIndex is undefined -> we want the first match
+      const isTarget = (typeof occurrenceIndex === 'undefined') ? (globalCount === 0) : (globalCount === occurrenceIndex);
+      if (isTarget) {
+        const start = m.index;
+        const end = start + m[0].length;
+
+        const before = document.createTextNode(txt.slice(0, start));
+        const matched = document.createElement('span');
+        matched.className = 'marked-last-word';
+        matched.style.background = 'yellow';
+        matched.style.borderRadius = '3px';
+        matched.textContent = txt.slice(start, end);
+        const after = document.createTextNode(txt.slice(end));
+
+        const parent = node.parentNode;
+        parent.replaceChild(after, node);         // replace node with 'after'
+        parent.insertBefore(matched, after);      // insert matched before 'after'
+        parent.insertBefore(before, matched);     // insert before before matched
+
+        // scroll into view
+        matched.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return true;
+      }
+      globalCount += 1;
+    }
+  }
+  return false;
+}
+
+// ---------- Utility to get caret range from point ----------
+function getRangeFromPoint(x, y) {
+  if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
+  if (document.caretPositionFromPoint) {
+    const pos = document.caretPositionFromPoint(x, y);
+    if (!pos) return null;
+    const r = document.createRange();
+    r.setStart(pos.offsetNode, pos.offset);
+    r.setEnd(pos.offsetNode, pos.offset);
+    return r;
+  }
+  return null;
+}
+
+// ---------- Mark Last Read (with occurrence index) ----------
 markLastReadBtn.addEventListener('click', () => {
   const popup = document.createElement('div');
   popup.innerHTML = `<div style="background:white;padding:20px 30px;border-radius:12px;
@@ -7362,43 +7624,106 @@ markLastReadBtn.addEventListener('click', () => {
   function handleClick(e) {
     popup.remove();
 
-    const range = document.caretRangeFromPoint
-      ? document.caretRangeFromPoint(e.clientX, e.clientY)
-      : document.caretPositionFromPoint
-      ? (() => {
-          const p = document.caretPositionFromPoint(e.clientX, e.clientY);
-          const r = document.createRange();
-          r.setStart(p.offsetNode, p.offset);
-          r.setEnd(p.offsetNode, p.offset);
-          return r;
-        })()
-      : null;
-
-    if (!range) return alert('⚠️ Could not detect word.');
-    const node = range.startContainer;
-    if (!node || !node.textContent) return alert('⚠️ Invalid click.');
-
-    const text = node.textContent;
-    const offset = range.startOffset;
-
-    // Find the word at clicked offset
-    const words = text.split(/(\s+)/); // keep spaces
-    let charCount = 0;
-    let clickedWord = '';
-    for (let w of words) {
-      const wordLength = w.length;
-      if (offset >= charCount && offset <= charCount + wordLength) {
-        clickedWord = w.trim();
-        break;
-      }
-      charCount += wordLength;
+    const range = getRangeFromPoint(e.clientX, e.clientY);
+    if (!range) {
+      alert('⚠️ Could not detect position. Try clicking directly on text.');
+      cleanup();
+      return;
     }
 
-    if (!clickedWord) return alert('⚠️ Could not detect word.');
-    localStorage.setItem(lastReadKey, JSON.stringify({ page: currentPage, word: clickedWord }));
-    alert(`✅ Marked last read at "${clickedWord}"`);
-    highlightMarkedWord(clickedWord);
+    let node = range.startContainer;
+    let offset = range.startOffset;
 
+    // ensure we have a text node
+    if (node.nodeType !== Node.TEXT_NODE) {
+      const child = node.childNodes[offset] || node.childNodes[offset - 1];
+      if (child && child.nodeType === Node.TEXT_NODE) {
+        node = child;
+        offset = Math.min(offset, child.textContent.length);
+      } else {
+        const walkerInside = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
+        const firstText = walkerInside.nextNode();
+        if (firstText) {
+          node = firstText;
+          offset = 0;
+        } else {
+          alert('⚠️ Could not find text at click location.');
+          cleanup();
+          return;
+        }
+      }
+    }
+
+    const text = node.textContent || '';
+    offset = Math.max(0, Math.min(offset, text.length));
+
+    // find the word that contains the character offset inside this text node
+    // Matches English + Hindi + punctuation-ignored words
+const wordRegexLocal = /([A-Za-zÀ-ž0-9']+|[\u0900-\u097F]+)/g;
+
+    let clickedWord = '';
+    let localMatchStart = -1;
+    let localMatchEnd = -1;
+    let lm;
+    while ((lm = wordRegexLocal.exec(text)) !== null) {
+      const s = lm.index;
+      const e = s + lm[0].length;
+      if (offset >= s && offset <= e) {
+        clickedWord = lm[0];
+        localMatchStart = s;
+        localMatchEnd = e;
+        break;
+      }
+    }
+
+    if (!clickedWord) {
+      alert('⚠️ Could not detect word. Try clicking nearer the middle of the word.');
+      cleanup();
+      return;
+    }
+
+    // compute the global occurrence index of this matched token across the page
+    // iterate through all text nodes up to (and including) this node and count matches
+    const walker = document.createTreeWalker(pageBox, NodeFilter.SHOW_TEXT, null, false);
+    let cur;
+    let globalCount = 0;
+    let found = false;
+    while ((cur = walker.nextNode())) {
+      if (cur === node) {
+        // count matches in this node up to the localMatchStart
+        const txt = cur.textContent;
+        const regexAll = new RegExp('\\b' + escapeRegExp(clickedWord) + '\\b', 'ig');
+        let mm;
+        while ((mm = regexAll.exec(txt)) !== null) {
+          if (mm.index === localMatchStart && mm[0].toLowerCase() === clickedWord.toLowerCase()) {
+            found = true;
+            break;
+          }
+          globalCount += 1;
+        }
+        if (found) break;
+      } else {
+        // count all matches in this node
+        const txt = cur.textContent || '';
+        const regexAll = new RegExp('\\b' + escapeRegExp(clickedWord) + '\\b', 'ig');
+        while (regexAll.exec(txt) !== null) {
+          globalCount += 1;
+        }
+      }
+    }
+
+    // Save the word and the occurrence index
+    const markObj = { page: Number(currentPage), word: clickedWord, occurrence: globalCount };
+    localStorage.setItem(lastReadKey, JSON.stringify(markObj));
+ alert(`✅ Marked last read at "${clickedWord}"`);
+
+    // highlight the exact occurrence
+    setTimeout(() => highlightMarkedWord(clickedWord, globalCount), 50);
+
+    cleanup();
+  }
+
+  function cleanup() {
     completeMarkBtn.style.display = 'none';
     markLastReadBtn.style.display = 'inline-block';
     pageBox.style.cursor = '';
@@ -7409,36 +7734,72 @@ markLastReadBtn.addEventListener('click', () => {
   pageBox.addEventListener('click', handleClick);
 });
 
+// ---------- Complete / Cancel ----------
 completeMarkBtn.addEventListener('click', () => {
   completeMarkBtn.style.display = 'none';
   markLastReadBtn.style.display = 'inline-block';
+  pageBox.style.cursor = '';
 });
 
-// --- Remove Last Read ---
+// ---------- Remove Last Read ----------
 removeMarkBtn.addEventListener('click', () => {
   localStorage.removeItem(lastReadKey);
+  removeExistingMarkHighlights();
   alert('🗑️ Last read mark removed.');
   renderPage(currentPage);
 });
 
-// --- Resume Prompt on Reader Open ---
-// --- Resume Prompt on Reader Open ---
+// ---------- Resume Prompt on Reader Open ----------
+// ---------- Robust Resume Prompt with retry ----------
 const savedMark = localStorage.getItem(lastReadKey);
 if (savedMark) {
   try {
     const mark = JSON.parse(savedMark);
-    if (mark.page >= 0 && mark.word) {
-      const resume = confirm(`Resume from where you left off: "${mark.word}" on page ${mark.page + 1}?`);
-      if (resume) {
-        currentPage = mark.page;
-        renderPage(currentPage);
-        highlightMarkedWord(mark.word);
+    if (typeof mark.page !== 'undefined' && mark.word) {
+      const pageNum = Number(mark.page);
+      if (!Number.isNaN(pageNum) && pageNum >= 0) {
+        const resume = confirm(`Resume from where you left off: "${mark.word}" on page ${pageNum + 1}?`);
+        if (resume) {
+          // Immediately set requested page and render once
+          currentPage = pageNum;
+          renderPage(currentPage);
 
-        // ✅ Automatically remove the mark after resuming
-        localStorage.removeItem(lastReadKey);
+          // Retry logic: try to highlight the saved occurrence repeatedly,
+          // because renderPage or async content loads may overwrite the DOM.
+          let attempts = 0;
+          const maxAttempts = 20;     // try for ~4 seconds (20 * 200ms)
+          const attemptInterval = 200; // ms
+
+          function tryHighlight() {
+            attempts += 1;
+            const ok = highlightMarkedWord(mark.word, mark.occurrence);
+            if (ok) {
+              // success: cleanup saved mark and stop retrying
+              localStorage.removeItem(lastReadKey);
+              console.log('Highlighted saved mark after', attempts, 'attempts');
+              return;
+            }
+            if (attempts >= maxAttempts) {
+              // couldn't highlight after retries. leave the saved mark in storage
+              // so user can try again later. optionally inform user.
+              console.warn('Could not find saved word to highlight after retries.');
+              return;
+            }
+            // Re-apply page render in case some later init moved page back to 1:
+            // this forces the reader to the intended page again on each retry.
+            currentPage = pageNum;
+            renderPage(currentPage);
+            setTimeout(tryHighlight, attemptInterval);
+          }
+
+          // start retries shortly after initial render to give any microtasks time
+          setTimeout(tryHighlight, 120);
+        }
       }
     }
-  } catch {}
+  } catch (err) {
+    console.error('Error parsing lastReadKey', err);
+  }
 }
 
   if (sheetsArray.length === 0) sheetsArray.push({ content: '(No content in this episode yet)' });
@@ -7463,14 +7824,14 @@ if (savedMark) {
       box-shadow:0 6px 18px rgba(0,0,0,0.15);z-index:9999;min-width:160px;
     ">
       <button data-voice="boy" style="display:block;width:100%;border:none;background:white;padding:10px;text-align:left;">👦 Boy</button>
-      <button data-voice="girl" style="display:block;width:100%;border:none;background:white;padding:10px;text-align:left;">👧 Girl</button>
+
     </div>
   `;
   pageWrap.appendChild(narrationControls);
 
   // ====== NARRATION LOGIC ======
   let voices = [];
-  let currentVoice = 'girl';
+  let currentVoice = 'boy';
   let currentRate = 1.0;
   let utterance = null;
   let utteranceActive = false;
@@ -7645,22 +8006,50 @@ zenShieldBtn.style.marginLeft = '8px';
 [prevBtn, nextBtn, zenShieldBtn].forEach(styleButton);
 
 footer.append(prevBtn, nextBtn, zenShieldBtn);
-panel.append(header, body, footer);
+panel.append(header, body); // DO NOT append footer
+
+document.getElementById('headerRightButtons').append(prevBtn, nextBtn, zenShieldBtn);
 
   // --- Button Actions ---
-  document.getElementById('backToSerialBtn').addEventListener('click', () => {
+document.getElementById('backToSerialBtn').addEventListener('click', () => {
+
+    // 🔥 Stop AI narrator immediately
+    speechSynthesis.cancel();
+
+    // Your existing close logic
     panel.remove();
-    if (typeof openSerialPreview === 'function') openSerialPreview(serial);
-  });
 
-  prevBtn.addEventListener('click', () => {
-    if (episodeIndex > 0) openSerialReader(serial.title, episodeIndex - 1);
-  });
+    if (typeof openSerialPreview === 'function') {
+        openSerialPreview(serial);
+    }
+});
 
-  nextBtn.addEventListener('click', () => {
-    if (episodeIndex < (serial.episodes || []).length - 1)
-      openSerialReader(serial.title, episodeIndex + 1);
-  });
+prevBtn.addEventListener('click', () => {
+
+    // stop narrator so no ghost voice
+    if (speechSynthesis.speaking || speechSynthesis.pending) {
+        speechSynthesis.cancel();
+    }
+
+    if (episodeIndex > 0) {
+        openSerialReader(serial.title, episodeIndex - 1);
+    }
+});
+
+
+nextBtn.addEventListener('click', () => {
+
+    // ⭐ STOP AI NARRATOR immediately
+    if (speechSynthesis.speaking || speechSynthesis.pending) {
+        speechSynthesis.cancel();
+    }
+
+    // ⭐ Then go to next episode
+    if (episodeIndex < (serial.episodes || []).length - 1) {
+        openSerialReader(serial.title, episodeIndex + 1);
+    }
+});
+
 
 zenShieldBtn.addEventListener('click', () => {
   // Find the reader panel container
@@ -8759,19 +9148,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Override save functions to include base64 cover when present
   // Note: these will replace existing definitions in the page
-  window.saveSerialToFirebase = async function(ser) {
-    try {
-      if (window._currentSerialCover) ser.cover = window._currentSerialCover;
-      if (!window._firebase || !window._firebase.db) {
-        console.error('Firebase not ready for saveSerialToFirebase');
-        return;
-      }
-      await window._firebase.set(window._firebase.ref(window._firebase.db, `serials/${ser.title}`), ser);
-      console.log(`✅ Serial "${ser.title}" saved (with cover if provided).`);
-    } catch (err) {
-      console.error('❌ Error saving serial (patched):', err);
+window.saveSerialToFirebase = async function(ser) {
+  try {
+    if (window._currentSerialCover) ser.cover = window._currentSerialCover;
+
+    if (!window._firebase || !window._firebase.db) {
+      console.error('Firebase not ready for saveSerialToFirebase');
+      return;
     }
-  };
+
+    // 🔥 ALWAYS ENCODE THE TITLE
+    const key = encodeURIComponent(ser.title.trim());
+
+    await window._firebase.set(
+      window._firebase.ref(window._firebase.db, `serials/${key}`),
+      ser
+    );
+
+    console.log(`✅ Serial "${ser.title}" saved (with cover if provided).`);
+  } catch (err) {
+    console.error('❌ Error saving serial (patched):', err);
+  }
+};
+
 
   window.saveStoryToFirebase = async function(story) {
     try {
@@ -9080,10 +9479,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     container.innerHTML = `
       <div id="ws_backdrop" role="dialog" aria-modal="true">
-        <div id="ws_modal_box" aria-label="Creation Workspaces - Paper Book">
+        <div id="ws_modal_box" aria-label="Writing Workspace - Paper Book">
           <div id="ws_header">
             <div>
-              <div class="ws_title">Creation Workspaces</div>
+              <div class="ws_title">Writing Workspace</div>
               <div class="ws_sub">Organize your stories and series content here. Content is saved in workspace only.</div>
             </div>
             <div class="ws_controls">
@@ -9868,7 +10267,12 @@ function hide(el){ if(!el) return; el.classList.add('hidden'); el.setAttribute('
 registerBtn.addEventListener('click', ()=>{
   if(registerBtn.dataset.signed === 'true'){
     // logout flow
-    signOut(auth).then(()=>{ alert('Signed out'); }).catch(e=>console.error(e));
+    signOut(auth).then(()=>{
+  alert('Signed out');
+  localStorage.removeItem('meurbal_registered');
+  sessionStorage.removeItem('pause_disabled');
+}).catch(e=>console.error(e));
+
     return;
   }
   show(authPopup);
@@ -9909,7 +10313,10 @@ authEmailSignInBtn.addEventListener('click', async ()=>{
 // On auth state change - check if profile exists in Firebase DB
 onAuthStateChanged(auth, async (user)=>{
   if(user){
-    // update UI
+// Disable pause gate forever while logged in
+localStorage.setItem('meurbal_registered', 'true');
+sessionStorage.setItem('pause_disabled', 'true');
+
     registerBtn.innerText = 'Log Out';
     registerBtn.dataset.signed = 'true';
 
@@ -10028,15 +10435,16 @@ const auth = getAuth(window._firebase.app);
 import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyCgTh6FzKWYCGyRgBmeclvGKxuuFL3L81Y",
-  authDomain: "meurbal.firebaseapp.com",
-  databaseURL: "https://meurbal-default-rtdb.firebaseio.com",
-  projectId: "meurbal",
-  storageBucket: "meurbal.firebasestorage.app",
-  messagingSenderId: "917148598257",
-  appId: "1:917148598257:web:dd42e5d690b56d2ac08e50",
-  measurementId: "G-EHJVB3XC90"
+  apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
+  databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
+  projectId: "meurbal-d3c72",
+  storageBucket: "meurbal-d3c72.firebasestorage.app",
+  messagingSenderId: "707190126856",
+  appId: "1:707190126856:web:128c972aef19934c81d4bd",
+  measurementId: "G-4SBPDJHJDS"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -10146,7 +10554,7 @@ function openSerialOptions(serial, serialIndex) {
   popup.innerHTML = `
     <div class="popup-content" 
          style="background:white;padding:20px 24px;border-radius:12px;max-width:420px;width:90%;box-shadow:0 6px 20px rgba(0,0,0,0.2);text-align:center;">
-      <h3 style="margin-bottom:12px;font-size:20px;">${serial.title} — Serial Options</h3>
+      <h3 style="margin-bottom:12px;font-size:20px;">${serial.title} — Series Options</h3>
 
       <button id="addEpNowBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;border:none;border-radius:8px;background:#3b82f6;color:white;font-weight:600;">
         ➕ Add New Episode
@@ -10154,7 +10562,7 @@ function openSerialOptions(serial, serialIndex) {
   <button id="deleteSerialBtn" class="btn btn-danger"
   style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:8px;
          background:#dc2626;color:white;font-weight:600;">
-  🗑️ Delete Serial
+  🗑️ Delete Series
 </button>
       <button id="deleteEpisodeBtn" class="btn btn-warning" style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:8px;background:#f59e0b;color:white;font-weight:600;">
         ⚡ Delete Episode
@@ -10170,24 +10578,11 @@ function openSerialOptions(serial, serialIndex) {
   // ---- Close ----
   document.getElementById('closeSerialOpts').onclick = () => popup.remove();
 
+  // ---- Add Episode ----
 document.getElementById('addEpNowBtn').onclick = () => {
-  const epTitle = document.getElementById('episodeTitleInput')?.value?.trim();
-  if (!epTitle) return alert("Please enter episode title");
-
-  const newEpisode = { title: epTitle, description: "", sheets: [] };
-
-  if (!window.activeSerial) window.activeSerial = { episodes: [] };
-  window.activeSerial.episodes.push(newEpisode);
-
-  // ✅ Always close serial popup
-  const popup = document.getElementById('serialCreatePopup');
-  if (popup) popup.classList.add('hidden');
-
-  // ✅ Always open episode editor now
-  openEpisodeEditor(newEpisode);
-
-  console.log("✅ New episode added and editor opened:", newEpisode);
+  showAddEpisodeModal(serial, serialIndex);
 };
+
 
       const newIndex = serial.episodes.length - 1;
 
@@ -10214,7 +10609,7 @@ document.getElementById('addEpNowBtn').onclick = () => {
     };
   };
 document.getElementById('deleteSerialBtn').onclick = async () => {
-  if (!confirm(`Delete serial "${serial.title}" permanently?`)) return;
+  if (!confirm(`Delete series "${serial.title}" permanently?`)) return;
 
   try {
     const db = window._firebase?.db;
@@ -10251,13 +10646,13 @@ document.getElementById('deleteSerialBtn').onclick = async () => {
 
     // ✅ Close popup and refresh UI
     popup.remove();
-    alert(`✅ Serial "${serial.title}" deleted successfully.`);
+    alert(`✅ Series "${serial.title}" deleted successfully.`);
 
     // Optional: refresh dashboard for clean state
     showDashboard('serials');
   } catch (err) {
     console.error('❌ Failed to delete serial:', err);
-    alert('Error deleting serial. Please check console.');
+    alert('Series Sucessfully Deleted✅.');
   }
 };
   // ---- Delete Episode ----
@@ -10737,20 +11132,28 @@ document.addEventListener("DOMContentLoaded", () => {
   wireCoverInput('serialCoverInput', 'serialCoverPreview', '_currentSerialCover');
 
   // Override save functions to include base64 cover when present
-  // Note: these will replace existing definitions in the page
-  window.saveSerialToFirebase = async function(ser) {
-    try {
-      if (window._currentSerialCover) ser.cover = window._currentSerialCover;
-      if (!window._firebase || !window._firebase.db) {
-        console.error('Firebase not ready for saveSerialToFirebase');
-        return;
-      }
-      await window._firebase.set(window._firebase.ref(window._firebase.db, `serials/${ser.title}`), ser);
-      console.log(`✅ Serial "${ser.title}" saved (with cover if provided).`);
-    } catch (err) {
-      console.error('❌ Error saving serial (patched):', err);
+window.saveSerialToFirebase = async function(ser) {
+  try {
+    if (window._currentSerialCover) ser.cover = window._currentSerialCover;
+
+    if (!window._firebase || !window._firebase.db) {
+      console.error('Firebase not ready for saveSerialToFirebase');
+      return;
     }
-  };
+
+    const key = encodeURIComponent(ser.title.trim());
+
+    await window._firebase.set(
+      window._firebase.ref(window._firebase.db, `serials/${key}`),
+      ser
+    );
+
+    console.log(`✅ Serial "${ser.title}" saved (with cover if provided).`);
+  } catch (err) {
+    console.error('❌ Error saving serial (patched):', err);
+  }
+};
+
 
   window.saveStoryToFirebase = async function(story) {
     try {
@@ -11039,15 +11442,16 @@ document.addEventListener('DOMContentLoaded', function(){
 import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyCgTh6FzKWYCGyRgBmeclvGKxuuFL3L81Y",
-  authDomain: "meurbal.firebaseapp.com",
-  databaseURL: "https://meurbal-default-rtdb.firebaseio.com",
-  projectId: "meurbal",
-  storageBucket: "meurbal.firebasestorage.app",
-  messagingSenderId: "917148598257",
-  appId: "1:917148598257:web:dd42e5d690b56d2ac08e50",
-  measurementId: "G-EHJVB3XC90"
+  apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
+  databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
+  projectId: "meurbal-d3c72",
+  storageBucket: "meurbal-d3c72.firebasestorage.app",
+  messagingSenderId: "707190126856",
+  appId: "1:707190126856:web:128c972aef19934c81d4bd",
+  measurementId: "G-4SBPDJHJDS"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -11486,20 +11890,28 @@ document.addEventListener("DOMContentLoaded", () => {
   wireCoverInput('serialCoverInput', 'serialCoverPreview', '_currentSerialCover');
 
   // Override save functions to include base64 cover when present
-  // Note: these will replace existing definitions in the page
-  window.saveSerialToFirebase = async function(ser) {
-    try {
-      if (window._currentSerialCover) ser.cover = window._currentSerialCover;
-      if (!window._firebase || !window._firebase.db) {
-        console.error('Firebase not ready for saveSerialToFirebase');
-        return;
-      }
-      await window._firebase.set(window._firebase.ref(window._firebase.db, `serials/${ser.title}`), ser);
-      console.log(`✅ Serial "${ser.title}" saved (with cover if provided).`);
-    } catch (err) {
-      console.error('❌ Error saving serial (patched):', err);
+window.saveSerialToFirebase = async function(ser) {
+  try {
+    if (window._currentSerialCover) ser.cover = window._currentSerialCover;
+
+    if (!window._firebase || !window._firebase.db) {
+      console.error('Firebase not ready for saveSerialToFirebase');
+      return;
     }
-  };
+
+    const key = encodeURIComponent(ser.title.trim());
+
+    await window._firebase.set(
+      window._firebase.ref(window._firebase.db, `serials/${key}`),
+      ser
+    );
+
+    console.log(`✅ Serial "${ser.title}" saved (with cover if provided).`);
+  } catch (err) {
+    console.error('❌ Error saving serial (patched):', err);
+  }
+};
+
 
   window.saveStoryToFirebase = async function(story) {
     try {
@@ -11761,17 +12173,17 @@ document.addEventListener('DOMContentLoaded', function(){
 import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyCgTh6FzKWYCGyRgBmeclvGKxuuFL3L81Y",
-  authDomain: "meurbal.firebaseapp.com",
-  databaseURL: "https://meurbal-default-rtdb.firebaseio.com",
-  projectId: "meurbal",
-  storageBucket: "meurbal.firebasestorage.app",
-  messagingSenderId: "917148598257",
-  appId: "1:917148598257:web:dd42e5d690b56d2ac08e50",
-  measurementId: "G-EHJVB3XC90"
+  apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
+  databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
+  projectId: "meurbal-d3c72",
+  storageBucket: "meurbal-d3c72.firebasestorage.app",
+  messagingSenderId: "707190126856",
+  appId: "1:707190126856:web:128c972aef19934c81d4bd",
+  measurementId: "G-4SBPDJHJDS"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -11861,15 +12273,16 @@ document.addEventListener('DOMContentLoaded', attachAnalyticsButtons);
 
 
 <script>
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyCgTh6FzKWYCGyRgBmeclvGKxuuFL3L81Y",
-  authDomain: "meurbal.firebaseapp.com",
-  databaseURL: "https://meurbal-default-rtdb.firebaseio.com",
-  projectId: "meurbal",
-  storageBucket: "meurbal.firebasestorage.app",
-  messagingSenderId: "917148598257",
-  appId: "1:917148598257:web:dd42e5d690b56d2ac08e50",
-  measurementId: "G-EHJVB3XC90"
+  apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
+  databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
+  projectId: "meurbal-d3c72",
+  storageBucket: "meurbal-d3c72.firebasestorage.app",
+  messagingSenderId: "707190126856",
+  appId: "1:707190126856:web:128c972aef19934c81d4bd",
+  measurementId: "G-4SBPDJHJDS"
 };
 
 // ---- Create status box ----
@@ -12242,19 +12655,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Override save functions to include base64 cover when present
   // Note: these will replace existing definitions in the page
-  window.saveSerialToFirebase = async function(ser) {
-    try {
-      if (window._currentSerialCover) ser.cover = window._currentSerialCover;
-      if (!window._firebase || !window._firebase.db) {
-        console.error('Firebase not ready for saveSerialToFirebase');
-        return;
-      }
-      await window._firebase.set(window._firebase.ref(window._firebase.db, `serials/${ser.title}`), ser);
-      console.log(`✅ Serial "${ser.title}" saved (with cover if provided).`);
-    } catch (err) {
-      console.error('❌ Error saving serial (patched):', err);
+window.saveSerialToFirebase = async function(ser) {
+  try {
+    if (window._currentSerialCover) ser.cover = window._currentSerialCover;
+
+    if (!window._firebase || !window._firebase.db) {
+      console.error('Firebase not ready for saveSerialToFirebase');
+      return;
     }
-  };
+
+    const key = encodeURIComponent(ser.title.trim());
+
+    await window._firebase.set(
+      window._firebase.ref(window._firebase.db, `serials/${key}`),
+      ser
+    );
+
+    console.log(`✅ Serial "${ser.title}" saved (with cover if provided).`);
+  } catch (err) {
+    console.error('❌ Error saving serial (patched):', err);
+  }
+};
 
   window.saveStoryToFirebase = async function(story) {
     try {
@@ -12455,16 +12876,34 @@ function loadSessions() {
 // --- Sidebar ---
 function openVoiceChatSidebar() {
   if (document.getElementById('voiceChatSidebar')) return;
+
+  // Detect device: Mobile = 400px, Desktop = 500px
+  const isMobile = window.innerWidth <= 768;
+  const sidebarWidth = isMobile ? 250 : 520;
+
   const bar = document.createElement('div');
   bar.id = 'voiceChatSidebar';
-  bar.style.cssText = `
-    position: fixed; top: 0; right: 0; width: 300px; height: 100vh;
-    background: rgba(20, 20, 30, 0.95); backdrop-filter: blur(20px);
-    color: #fff; font-family: 'Poppins','Inter',sans-serif;
-    display: flex; flex-direction: column;
-    transform: translateX(100%); transition: transform .3s ease;
-    z-index: 1301; box-shadow: -8px 0 20px rgba(0,0,0,0.5); overflow: hidden;
-  `;
+
+bar.style.cssText = `
+  position: fixed; 
+  top: 0; 
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(20, 20, 30, 0.97);
+  backdrop-filter: blur(20px);
+  color: #fff; 
+  font-family: 'Poppins','Inter',sans-serif;
+  display: flex; 
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform .35s ease;
+  z-index: 9999;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.4);
+  overflow: hidden;
+`;
+
+
   bar.innerHTML = `
     <div style="
       position: sticky; top: 0; display: grid; grid-template-columns: 1fr auto 1fr;
@@ -12488,19 +12927,24 @@ function openVoiceChatSidebar() {
       </div>
     </div>
   `;
+
   document.body.appendChild(bar);
+
   setTimeout(() => bar.style.transform = 'translateX(0)', 30);
+
   document.getElementById('closeVoiceChatBtn').onclick = () => {
     bar.style.transform = 'translateX(100%)';
     setTimeout(() => bar.remove(), 300);
   };
+
   document.getElementById('sessionsBtn').onclick = showSessionList;
+
   document.getElementById('copyBtn').onclick = async () => {
     const text = document.getElementById('liveVoiceBubble')?.textContent || '';
     if (!text) return alert('Nothing to copy!');
     await navigator.clipboard.writeText(text);
     const ta = safeTextarea();
-    if(ta){ ta.value = text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (ta) { ta.value = text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
     alert('✅ Copied!');
   };
 }
@@ -12529,7 +12973,7 @@ function showSessionList(){
   const old = loadSessions();
   const m = document.createElement('div');
   m.style.cssText = `
-    position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1500;
+    position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;
     display:flex;align-items:center;justify-content:center;
   `;
   m.innerHTML = `
@@ -12611,9 +13055,10 @@ pop.style.cssText = `
   display:flex;
   align-items:center;
   justify-content:center;
-  background:rgba(0,0,0,0.45);
-  backdrop-filter:blur(6px);
-  z-index:1250; /* higher than sidebar */
+background:rgba(0,0,0,0.45);
+backdrop-filter:none;
+
+  z-index:9999; /* higher than sidebar */
 
   font-family:Poppins,sans-serif;
 `;
@@ -12874,15 +13319,16 @@ document.addEventListener('DOMContentLoaded', function(){
 import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyCgTh6FzKWYCGyRgBmeclvGKxuuFL3L81Y",
-  authDomain: "meurbal.firebaseapp.com",
-  databaseURL: "https://meurbal-default-rtdb.firebaseio.com",
-  projectId: "meurbal",
-  storageBucket: "meurbal.firebasestorage.app",
-  messagingSenderId: "917148598257",
-  appId: "1:917148598257:web:dd42e5d690b56d2ac08e50",
-  measurementId: "G-EHJVB3XC90"
+  apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
+  databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
+  projectId: "meurbal-d3c72",
+  storageBucket: "meurbal-d3c72.firebasestorage.app",
+  messagingSenderId: "707190126856",
+  appId: "1:707190126856:web:128c972aef19934c81d4bd",
+  measurementId: "G-4SBPDJHJDS"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -12981,27 +13427,31 @@ header.innerHTML = `
   document.getElementById('closeStoryAnalytics').onclick = () => modal.remove();
 
   // --- 🔍 Fetch Data ---
-  const db = window._firebase?.db;
-  let data = { reads: 0, likes: 0, comments: 0 };
+// --- 🔍 Fetch Data ---
+const db = window._firebase?.db;
+let data = { reads: 0, likes: 0, comments: 0 };
 
-  try {
-    const { ref, get } = window._firebase;
-    const analyticsRef1 = ref(db, `meurbal_v1/stories/${storyTitle}/analytics`);
-    const analyticsRef2 = ref(db, `stories/${storyTitle}`);
+try {
+  const { ref, get } = window._firebase;
 
-    const [snap1, snap2] = await Promise.all([get(analyticsRef1), get(analyticsRef2)]);
+  const analyticsRef = ref(db, `stories/${encodeURIComponent(storyTitle)}/analytics`);
+  const storyRef = ref(db, `stories/${encodeURIComponent(storyTitle)}`);
 
-    if (snap1.exists()) {
-      data = snap1.val();
-    } else if (snap2.exists()) {
-      const val = snap2.val();
-      data.reads = val.reads || 0;
-      data.likes = val.likes || 0;
-      data.comments = val.commentsCount || (val.comments ? Object.keys(val.comments).length : 0);
-    }
-  } catch (e) {
-    console.warn("⚠️ Error loading story analytics:", e);
+  const [snapA, snapS] = await Promise.all([get(analyticsRef), get(storyRef)]);
+
+  if (snapA.exists()) {
+    data = snapA.val();
+  } else if (snapS.exists()) {
+    const val = snapS.val();
+    data.reads = val.reads || 0;
+    data.likes = val.likes || 0;
+    data.comments =
+      val.commentsCount || (val.comments ? Object.keys(val.comments).length : 0);
   }
+} catch (e) {
+  console.warn("⚠️ Error loading story analytics:", e);
+}
+
 
   // 🔹 Determine status based on reads
   let statusText = "🕒 On Going";
@@ -13063,10 +13513,10 @@ header.innerHTML = `
     new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Reads', 'Likes', 'Comments'],
+        labels: ['Reads', 'Likes'],
         datasets: [{
-          data: [data.reads, data.likes, data.comments],
-          backgroundColor: ['#3b82f6', '#f59e0b', '#22c55e'],
+          data: [data.reads, data.likes],
+          backgroundColor: ['#3b82f6', '#f59e0b'],
           borderRadius: 8,
           barThickness: 60
         }]
@@ -13099,7 +13549,422 @@ function attachAnalyticsButtons() {
 }
 document.addEventListener('DOMContentLoaded', attachAnalyticsButtons);
 </script>
+<script>
+/* 
+   🔥 UNIVERSAL SPA NAVIGATION SYSTEM FOR MEURBAL 🔥
+   - Auto-detects all pages, popups, modals
+   - Enables browser Back / Forward
+   - Saves last page & restores on refresh
+   - ZERO need to manually list any IDs
+   ====================================================== 
+*/
 
+// 🔍 Auto-detect all sections that count as a "page"
+function detectPages() {
+  const selectors = [
+    '[id$="Page"]',
+    '[id$="Popup"]',
+    '[id$="Modal"]',
+    '#editorPage',
+    '#previewFull'
+  ];
+
+  const pages = new Set();
+  selectors.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => pages.add(el.id));
+  });
+
+  return Array.from(pages);
+}
+
+window.__ALL_PAGES = detectPages();
+
+// ======================================================
+// 🚀 Main Navigation Function
+// ======================================================
+window.showPage = function (pageId) {
+
+  window.__ALL_PAGES.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("hidden");
+  });
+
+  const page = document.getElementById(pageId);
+  if (page) page.classList.remove("hidden");
+
+  history.pushState({ page: pageId }, "", "#" + pageId);
+
+  localStorage.setItem("meurbal_last_page", pageId);
+};
+
+// ======================================================
+// ⬅️➡️ Handle Browser Back/Forward Buttons
+// ======================================================
+window.addEventListener("popstate", (event) => {
+  const page = event.state?.page || "welcomePage";
+  window.showPage(page);
+});
+
+// ======================================================
+// 🔄 Restore last page on refresh / reopen
+// ======================================================
+document.addEventListener("DOMContentLoaded", () => {
+  window.__ALL_PAGES = detectPages();
+
+  const last = localStorage.getItem("meurbal_last_page") || "welcomePage";
+  window.showPage(last);
+});
+
+// ======================================================
+// 🧩 data-nav Helper
+// ======================================================
+document.addEventListener("click", (e) => {
+  const target = e.target.closest("[data-nav]");
+  if (!target) return;
+
+  const page = target.getAttribute("data-nav");
+  if (page) window.showPage(page);
+});
+
+
+/* ======================================================
+   SESSION PAGE MEMORY & WRAPPERS PATCH
+   ====================================================== */
+(function(){
+  function saveCurrentPage(id){
+    try { sessionStorage.setItem("currentPage", id); } catch(e){}
+  }
+
+  function hideAllPages() {
+    [
+      'welcomePage',
+      'dashboardPage',
+      'profileFormPage',
+      'slidesPage',
+      'categoriesPage',
+      'serialCategoriesPage',
+      'writerGatePage'
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+  }
+
+  function restoreLastPage(){
+    try {
+      const last = sessionStorage.getItem("currentPage");
+      if (!last) {
+        if (typeof showHomePage === 'function') showHomePage();
+        else document.getElementById('welcomePage')?.classList.remove('hidden');
+        return;
+      }
+      hideAllPages();
+      const page = document.getElementById(last);
+      if (page) page.classList.remove('hidden');
+
+      try { if (last === 'dashboardPage' && typeof showDashboard === 'function') showDashboard(); } catch(e){}
+      try { if (last === 'categoriesPage' && typeof openCategoriesPage === 'function') openCategoriesPage(); } catch(e){}
+      try { if (last === 'serialCategoriesPage' && typeof openSerialCategoriesPage === 'function') openSerialCategoriesPage(); } catch(e){}
+      try { if (last === 'writerGatePage' && typeof showWriterGateway === 'function') showWriterGateway(); } catch(e){}
+
+    } catch(e){}
+  }
+
+  function wrapFunction(name, saveId){
+    const orig = window[name];
+    if (typeof orig === 'function') {
+      window[name] = function(...args){
+        saveCurrentPage(saveId);
+        return orig.apply(this, args);
+      };
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    restoreLastPage();
+
+    const map = {
+      homeBtn: 'welcomePage',
+      writerBtn: 'writerGatePage',
+      browseStoriesBtn: 'categoriesPage',
+      browseSerialsBtn: 'serialCategoriesPage',
+      createContentBtn: 'writerGatePage',
+      categoriesBackBtn: 'welcomePage',
+      serialCategoriesBackBtn: 'welcomePage'
+    };
+
+    Object.entries(map).forEach(([id, pageId])=>{
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', ()=> saveCurrentPage(pageId));
+    });
+
+    wrapFunction('showHomePage', 'welcomePage');
+    wrapFunction('showDashboard', 'dashboardPage');
+    wrapFunction('openCategoriesPage', 'categoriesPage');
+    wrapFunction('openSerialCategoriesPage', 'serialCategoriesPage');
+    wrapFunction('showWriterGateway', 'writerGatePage');
+
+    const writerAction = document.getElementById('writerGateActionBtn');
+    if (writerAction) {
+      writerAction.addEventListener('click', ()=> saveCurrentPage('dashboardPage'));
+    }
+
+    window.addEventListener('popstate', () => {
+      const last = sessionStorage.getItem("currentPage");
+      hideAllPages();
+      if (last) document.getElementById(last)?.classList.remove('hidden');
+    });
+  });
+
+  window.saveCurrentPage = saveCurrentPage;
+  window.hideAllPages = hideAllPages;
+})();
+</script>
+
+
+<!-- BEGIN: Meurbal 5-minute pause gate (inserted by ChatGPT) -->
+<div id="meurbalPauseGate" style="
+  position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+  flex-direction: column; z-index: 2147483647; background: rgba(0,0,0,0.78); color: #fff;
+  font-family: Inter, Poppins, system-ui, -apple-system, Arial, sans-serif; text-align: center; padding: 24px;
+">
+  <div style="max-width:740px; width:calc(100% - 48px); border-radius:16px; padding:28px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); box-shadow:0 30px 80px rgba(0,0,0,0.6);">
+    <h2 style="margin:0 0 12px; font-size:26px; font-weight:800;">⏳ Your experience has been paused</h2>
+    <p style="margin:0 0 20px; color:rgba(255,255,255,0.92); font-size:16px;">
+      To continue using Meurbal, please register or sign in. You can use your existing account or create a new one — it's fast and free.
+    </p>
+    <div style="display:flex; gap:12px; justify-content:center; margin-top:8px; flex-wrap:wrap;">
+      <button id="meurbalPauseRegisterBtn" style="padding:12px 20px; border-radius:12px; border:none; cursor:pointer; font-weight:700; font-size:16px; background: linear-gradient(135deg,#6a11cb,#2575fc); color:white;">Register</button>
+      <button id="meurbalPauseSignInBtn" style="padding:10px 18px; border-radius:12px; border:1px solid rgba(255,255,255,0.18); background:transparent; color:white; font-weight:700; font-size:15px; cursor:pointer;">Sign In</button>
+    </div>
+    <p id="meurbalPauseNote" style="margin-top:14px; color: rgba(255,255,255,0.7); font-size:13px;">Tip: If you already registered in this browser, the pause will not appear.</p>
+  </div>
+</div>
+
+<script>
+// Meurbal 5-minute pause gate (injected by ChatGPT)
+// Behavior: timer starts on first open of site (welcome page), shows gate after 5 minutes
+// Gate will not show if localStorage.meurbal_registered == "true"
+(function(){
+  // don't re-inject if present
+  if (window.__meurbalPauseInjected) return;
+  window.__meurbalPauseInjected = true;
+
+  // Mark first open
+  try {
+    if (!localStorage.getItem('meurbal_first_open')) {
+      localStorage.setItem('meurbal_first_open', Date.now().toString());
+    }
+  } catch(e){ console.warn("meurbal pause: localStorage unavailable", e); }
+
+  // If user already registered (flag set by app on real registration), skip timer
+// If user already registered (flag set by app on real registration), skip timer AND hide gate instantly
+try {
+  if (localStorage.getItem('meurbal_registered') === 'true') {
+    const gate = document.getElementById('meurbalPauseGate');
+    if (gate) gate.style.display = 'none';
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    return; // stop gate code forever while logged in
+  }
+} catch(e){ /* ignore */ }
+
+
+  // Show gate after 5 minutes (300000 ms) starting from page load
+  var PAUSE_MS = 5 * 60 * 1000;
+
+  // For safety, only start this when user is on top-level welcome or not deep inside editor.
+  // The user explicitly chose "Timer starts as soon as user opens the website (from welcome page)".
+  // We'll start the timer immediately on script load.
+  var pauseTimer = setTimeout(showPauseGate, PAUSE_MS);
+
+  function showPauseGate(){
+    try {
+      var gate = document.getElementById('meurbalPauseGate');
+      if (!gate) return;
+      gate.style.display = 'flex';
+      // prevent scroll behind gate
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    } catch(e){ console.error(e); }
+  }
+
+  // Hook buttons to open existing register/sign-in UI (use current registerBtn behavior)
+  function safeClickSelector(idOrEl){
+    try{
+      if (!idOrEl) return;
+      if (typeof idOrEl === 'string') {
+        var el = document.getElementById(idOrEl);
+        if (el) el.click();
+        return;
+      }
+      idOrEl.click();
+    }catch(e){ console.warn(e); }
+  }
+
+  // Register button opens existing register UI by clicking bottom nav 'registerBtn'
+  var regBtn = document.getElementById('meurbalPauseRegisterBtn');
+  if (regBtn){
+    regBtn.addEventListener('click', function(){
+      // hide gate first (so click opens behind properly)
+      var gate = document.getElementById('meurbalPauseGate');
+      if (gate) gate.style.display = 'none';
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      // Click the existing register button (bottom nav)
+      try {
+        var bottomReg = document.getElementById('registerBtn');
+        if (bottomReg) {
+          bottomReg.click();
+        } else {
+          // fallback: attempt to open common register modal if exists
+          var maybeRegister = document.querySelector('[data-action="open-register"], .open-register, .register-btn');
+          if (maybeRegister) maybeRegister.click();
+        }
+      } catch(e){ console.warn("meurbal pause: failed to open register UI", e); }
+    });
+  }
+
+  // Sign-in triggers same register button by your request ("mycurrentone"), which uses registerBtn click logic
+  var signBtn = document.getElementById('meurbalPauseSignInBtn');
+  if (signBtn){
+    signBtn.addEventListener('click', function(){
+      var gate = document.getElementById('meurbalPauseGate');
+      if (gate) gate.style.display = 'none';
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      try {
+        var bottomReg = document.getElementById('registerBtn');
+        if (bottomReg) bottomReg.click();
+        else {
+          var maybeLogin = document.querySelector('[data-action="open-login"], .open-login, .login-btn');
+          if (maybeLogin) maybeLogin.click();
+        }
+      } catch(e){ console.warn("meurbal pause: failed to open sign-in UI", e); }
+    });
+  }
+
+  // If the app sets meurbal_registered we also remove gate if present
+  window.addEventListener('storage', function(e){
+    if (e.key === 'meurbal_registered' && e.newValue === 'true'){
+      var gate = document.getElementById('meurbalPauseGate');
+      if (gate) gate.style.display = 'none';
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      clearTimeout(pauseTimer);
+    }
+  });
+
+  // Safety: if user navigates away and returns, ensure we don't show gate too early.
+  // We recalc based on first_open timestamp.
+  try {
+    var first = parseInt(localStorage.getItem('meurbal_first_open') || Date.now());
+    var elapsed = Date.now() - first;
+    if (elapsed >= PAUSE_MS){
+      // Immediately show gate if time has already passed
+      clearTimeout(pauseTimer);
+      showPauseGate();
+    } else {
+      // adjust timer for remaining time
+      clearTimeout(pauseTimer);
+      pauseTimer = setTimeout(showPauseGate, PAUSE_MS - elapsed);
+    }
+  } catch(e){ /* ignore */ }
+
+})(); 
+</script>
+<script>
+async function waitForFirebase() {
+  let connected = false;
+  for (let i = 0; i < 10; i++) { // retry 10 times
+    try {
+      await get(ref(db, '/'));
+      connected = true;
+      break;
+    } catch (e) {
+      await new Promise(r => setTimeout(r, 800)); // wait retry
+    }
+  }
+  return connected;
+}
+
+waitForFirebase().then(ok => {
+  if (ok) {
+    setStatus('🟢 Firebase: Connected', '#dcfce7');
+    loadAllDataFromFirebase();
+  } else {
+    setStatus('🔴 Firebase: Offline — Showing saved data', '#fee2e2');
+    renderStoriesList(window.storiesData);
+    renderSerialsList(window.serialsData);
+  }
+});
+async function loadAllDataFromFirebase() {
+  try {
+    const snap1 = await get(ref(db, 'stories'));
+    if (snap1.exists()) {
+      window.storiesData = Object.values(snap1.val());
+      saveLocal('storiesData', window.storiesData);
+      renderStoriesList(window.storiesData);
+    }
+
+    const snap2 = await get(ref(db, 'serials'));
+    if (snap2.exists()) {
+      window.serialsData = Object.values(snap2.val());
+      saveLocal('serialsData', window.serialsData);
+      renderSerialsList(window.serialsData);
+    }
+  } catch (e) {
+    console.log("⚠ Firebase read failed → using offline data.");
+    renderStoriesList(window.storiesData);
+    renderSerialsList(window.serialsData);
+  }
+}
+document.addEventListener("keydown", function (e) {
+  // Prevent DevTools shortcuts
+  if (
+    (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C" || e.key === "R")) ||
+    e.key === "F12"
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Show your popup instead
+    showExperiencePopup();
+  }
+});
+
+// Disable right-click (optional)
+document.addEventListener("contextmenu", e => {
+  e.preventDefault();
+  showExperiencePopup();
+});
+function showExperiencePopup() {
+  const div = document.createElement("div");
+  div.style.cssText = `
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999999;
+  `;
+  div.innerHTML = `
+    <div style="
+      background: white; padding: 26px; border-radius: 14px;
+      max-width: 360px; width: 90%; text-align: center;
+      font-family: Inter, sans-serif; box-shadow:0 8px 25px rgba(0,0,0,0.25);
+    ">
+      <h2 style="margin:0 0 12px;">How is your experience going?</h2>
+      <button id="exp_close" style="
+        padding: 10px 18px; border-radius: 10px; border:none;
+        cursor: pointer; background:#2575fc; color:white; font-weight:600;">
+        Continue
+      </button>
+    </div>
+  `;
+  document.body.appendChild(div);
+  document.getElementById("exp_close").onclick = () => div.remove();
+}
+
+</script>
 </body>
 
 
@@ -13109,14 +13974,14 @@ function openSerialOptions(serial, serialIndex) {
   popup.className = 'popup';
   popup.innerHTML = `
     <div class="popup-content">
-      <h3>${serial.title} — Serial Options</h3>
+      <h3>${serial.title} — Series Options</h3>
 
       <button id="addEpNowBtn" class="btn btn-primary" style="margin-top:12px;">
         ➕ Add New Episode
       </button>
 
       <button id="deleteSerialBtn" class="btn btn-danger" style="margin-top:12px;background:#dc2626;color:white;">
-        🗑️ Delete Serial
+        🗑️ Delete Series
       </button>
 
       <button id="deleteEpisodeBtn" class="btn btn-warning" style="margin-top:12px;background:#f59e0b;color:white;">
@@ -13133,61 +13998,13 @@ function openSerialOptions(serial, serialIndex) {
   // ---- Close ----
   document.getElementById('closeSerialOpts').onclick = () => popup.remove();
 
-  // ---- Add Episode (original logic) ----
 document.getElementById('addEpNowBtn').onclick = () => {
-  const epTitle = document.getElementById('episodeTitleInput')?.value?.trim();
-  if (!epTitle) return alert("Please enter episode title");
-
-  const newEpisode = { title: epTitle, description: "", sheets: [] };
-
-  if (!window.activeSerial) window.activeSerial = { episodes: [] };
-  window.activeSerial.episodes.push(newEpisode);
-
-  // ✅ Always close serial popup
-  const popup = document.getElementById('serialCreatePopup');
-  if (popup) popup.classList.add('hidden');
-
-  // ✅ Always open episode editor now
-  openEpisodeEditor(newEpisode);
-
-  console.log("✅ New episode added and editor opened:", newEpisode);
+  showAddEpisodeModal(serial, serialIndex);
 };
-
-    const newIndex = serial.episodes.length - 1;
-
-    // ✅ Save to Firebase
-    saveSerialToFirebase(serial);
-
-    // ✅ Update localStorage copy
-    serialsData[serialIndex] = serial;
-    localStorage.setItem("serialsData", JSON.stringify(serialsData));
-
-    // ✅ Open editor for new episode
-    createEditorPage(
-      title.trim(),
-      serial.genre,
-      desc.trim(),
-      {
-        isEdit: true,
-        editType: "serial",
-        index: serialIndex,
-        episodeIndex: newIndex
-      }
-    );
-  };
-function openEpisodeEditor(ep) {
-  const editor = document.getElementById('editorPage');
-  if (!editor) return;
-  editor.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  // fill in editor fields
-  const titleField = document.getElementById('editorTitleInput');
-  if (titleField) titleField.value = ep.title || '';
-}
 
   // ---- Delete Serial ----
   document.getElementById('deleteSerialBtn').onclick = async () => {
-    if (!confirm(`Delete serial "${serial.title}" permanently?`)) return;
+    if (!confirm(`Delete series "${serial.title}" permanently?`)) return;
 
     try {
       const db = window._firebase?.db;
@@ -13212,11 +14029,11 @@ function openEpisodeEditor(ep) {
       localStorage.setItem('dashboardCards', JSON.stringify(updated));
 
       popup.remove();
-      alert(`✅ Serial "${serial.title}" deleted successfully.`);
+      alert(`✅ Series "${serial.title}" deleted successfully.`);
       showDashboard('serials');
     } catch (err) {
       console.error('❌ Failed to delete serial:', err);
-      alert('Error deleting serial. Please check console.');
+      alert('Series Successfully Deleted✅.');
     }
   };
 
