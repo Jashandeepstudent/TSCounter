@@ -4915,11 +4915,15 @@ book.style.cssText = `
   perspective: 2000px;
   width: 880px;
   max-width: 95%;
-  height: 82vh;            /* 🔥 FIX */
-  max-height: 88vh;        /* 🔥 FIX */
-  overflow: hidden;        /* 🔥 FIX */
-  -webkit-overflow-scrolling: touch;
+
+  height: 82vh;
+  max-height: 88vh;
+
+  overflow-y: auto;                     
+  -webkit-overflow-scrolling: touch;    
+  overscroll-behavior: contain;          /* 🟢 Prevent bounce-breaking on Android & iPhone */
 `;
+
 
   const pageFront = document.createElement("div");
   const pageBack = document.createElement("div");
@@ -4939,7 +4943,12 @@ book.style.cssText = `
       textAlign: "justify",
       backfaceVisibility: "hidden",
       transformStyle: "preserve-3d",
-      overflowY: "auto",
+
+        overflowY: "auto",
+  WebkitOverflowScrolling: "touch",   // iPhone smooth scroll
+  touchAction: "pan-y",                // universal finger scroll
+  pointerEvents: "auto",               // makes touch recognized
+  overscrollBehavior: "none",      
     });
   });
   pageBack.style.transform = "rotateY(180deg)";
