@@ -4904,7 +4904,6 @@ function openReaderFullScreen(story) {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "flex-start",
     padding: "20px",
   });
 
@@ -5264,8 +5263,19 @@ nextFullBtn.onclick = () => {
 };
 
 // ====== INITIAL RENDER ======
+// ====== INITIAL RENDER ======
 renderIntoElement(pageFront, idx);
 updateCounter();
+
+// 🔥 Enable mobile scrolling on pages (iPhone + Android)
+pageFront.style.pointerEvents = "auto";
+pageFront.style.overflowY = "auto";
+pageFront.style.touchAction = "pan-y";
+
+pageBack.style.pointerEvents = "auto";
+pageBack.style.overflowY = "auto";
+pageBack.style.touchAction = "pan-y";
+
 
 // ====== FIX MOBILE & DESKTOP SCROLL ======
 
