@@ -5185,32 +5185,43 @@ function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
   el.innerHTML = "";
   wordRanges = [];
   let pos = 0;
-  const words = text.replace(/\n+/g, " \n ").split(/\s+/).filter(Boolean);
 
-  words.forEach((w, wi) => {
-    const span = document.createElement("span");
-    span.className = "word";
-    span.dataset.wordIndex = wi;
-    span.textContent = w + " ";
+  // 🔥 Split by blank lines for paragraphs (instead of flattening)
+  const paragraphs = text.split(/\n\s*\n/);
 
-    const start = pos;
-    const end = start + span.textContent.length;
-    wordRanges.push([start, end]);
-    pos = end;
+  paragraphs.forEach((para) => {
+    const words = para.split(/\s+/).filter(Boolean);
 
-    // --- Handle marking and highlighting ---
-    span.addEventListener("click", () => {
-      if (markingMode) {
-        markingMode = false;
-        localStorage.setItem(savedKey, JSON.stringify({ sheetIndex: pageIndex, wordIndex: wi }));
-        highlightWordInElement(el, wi);
-        showToast(`✅ Marked your last read at word #${wi + 1}`);
-        enableRemoveBtn(true);
-      }
+    words.forEach((w) => {
+      const wi = wordRanges.length; // keep global indexing
+      const span = document.createElement("span");
+      span.className = "word";
+      span.dataset.wordIndex = wi;
+      span.textContent = w + " ";
+
+      const start = pos;
+      const end = start + span.textContent.length;
+      wordRanges.push([start, end]);
+      pos = end;
+
+      // --- Handle marking and highlighting ---
+      span.addEventListener("click", () => {
+        if (markingMode) {
+          markingMode = false;
+          localStorage.setItem(savedKey, JSON.stringify({ sheetIndex: pageIndex, wordIndex: wi }));
+          highlightWordInElement(el, wi);
+          showToast(`✅ Marked your last read at word #${wi + 1}`);
+          enableRemoveBtn(true);
+        }
+      });
+
+      if (wi === highlightWordIndex) span.classList.add("highlight");
+      el.appendChild(span);
     });
 
-    if (wi === highlightWordIndex) span.classList.add("highlight");
-    el.appendChild(span);
+    // 🔥 Add paragraph spacing (looks like you pressed Enter twice)
+    el.appendChild(document.createElement("br"));
+    el.appendChild(document.createElement("br"));
   });
 }
 
