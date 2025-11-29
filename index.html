@@ -4929,10 +4929,8 @@ book.style.cssText = `
   const pageBack = document.createElement("div");
   [pageFront, pageBack].forEach((p) => {
     Object.assign(p.style, {
-position: "relative",
-width: "100%",
-min-height: 100%,      // makes page grow vertically
-
+      position: "relative",
+      inset: 0,
       padding: "28px",
       background: "#fffef9",
       border: "1px solid #e5d7b7",
