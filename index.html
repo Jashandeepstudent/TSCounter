@@ -5210,7 +5210,13 @@ function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
   wrap.style.cssText = `
     max-height: 90vh;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 40px;
+    padding-bottom: 40px; 
+    wrap.style.maxHeight = "85vh";                // visible area
+wrap.style.overflowY = "scroll";              // scroll container
+wrap.style.WebkitOverflowScrolling = "touch"; // important for iPhone scrolling
+wrap.style.touchAction = "pan-y";             // allow vertical scroll gesture
+wrap.style.paddingBottom = "20px";            // avoid cutoff of last line
+
   `;
 
   wordRanges = [];
@@ -5261,7 +5267,9 @@ function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
       p.appendChild(span);
     });
 
-    wrap.appendChild(p);
+     wrap.appendChild(p);
+    el.style.pointerEvents = "auto"; // allow touch
+
   });
 
   el.appendChild(wrap);
