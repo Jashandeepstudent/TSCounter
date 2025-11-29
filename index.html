@@ -5189,43 +5189,64 @@ function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
   const text = (sheets[pageIndex] && sheets[pageIndex].content) || "";
   el.innerHTML = "";
 
-  // 🔥 Create scrollable inner wrapper
+  // Scroll Wrapper
   const wrap = document.createElement("div");
   wrap.className = "pageContentWrap";
   wrap.style.cssText = `
     max-height: 90vh;
-    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 40px;
   `;
 
   wordRanges = [];
   let pos = 0;
-  const words = text.replace(/\n+/g, " \n ").split(/\s+/).filter(Boolean);
 
-  words.forEach((w, wi) => {
-    const span = document.createElement("span");
-    span.className = "word";
-    span.dataset.wordIndex = wi;
-    span.textContent = w + " ";
+  // Split into paragraphs (segments)
+  const segments = text.split(/\n\s*\n/);
 
-    const start = pos;
-    const end = start + span.textContent.length;
-    wordRanges.push([start, end]);
-    pos = end;
+  segments.forEach(seg => {
+    // Empty paragraph = new line (double break)
+    if (!seg.trim()) {
+      wrap.appendChild(document.createElement("br"));
+      wrap.appendChild(document.createElement("br"));
+      return;
+    }
 
-    span.addEventListener("click", () => {
-      if (markingMode) {
-        markingMode = false;
-        localStorage.setItem(savedKey, JSON.stringify({ sheetIndex: pageIndex, wordIndex: wi }));
-        highlightWordInElement(wrap, wi);
-        showToast(`✅ Marked at word: ${wi + 1}`);
-        enableRemoveBtn(true);
-      }
+    // Create paragraph <p>
+    const p = document.createElement("p");
+    p.style.margin = "0 0 18px 0";
+
+    // Split seg into words
+    const words = seg.split(/\s+/).filter(Boolean);
+
+    words.forEach((w, wi) => {
+      const span = document.createElement("span");
+      span.className = "word";
+      span.dataset.wordIndex = pos;   // NOT wi — global index
+      span.textContent = w + " ";
+
+      // Range tracking
+      const start = pos;
+      const end = start + span.textContent.length;
+      wordRanges.push([start, end]);
+      pos = end;
+
+      // Click Listener
+      span.addEventListener("click", () => {
+        if (markingMode) {
+          markingMode = false;
+          localStorage.setItem(savedKey, JSON.stringify({ sheetIndex: pageIndex, wordIndex: start }));
+          highlightWordInElement(wrap, start);
+          showToast(`📌 Marked at word: ${start}`);
+          enableRemoveBtn(true);
+        }
+      });
+
+      if (start === highlightWordIndex) span.classList.add("highlight");
+      p.appendChild(span);
     });
 
-    if (wi === highlightWordIndex) span.classList.add("highlight");
-    wrap.appendChild(span);
+    wrap.appendChild(p);
   });
 
   el.appendChild(wrap);
@@ -5273,21 +5294,12 @@ nextFullBtn.onclick = () => {
 renderIntoElement(pageFront, idx);
 updateCounter();
 
-// 🔥 Enable mobile scrolling on pages (iPhone + Android)
-pageFront.style.pointerEvents = "auto";
-pageFront.style.overflowY = "auto";
-pageFront.style.touchAction = "pan-y";
 
-pageBack.style.pointerEvents = "auto";
-pageBack.style.overflowY = "auto";
-pageBack.style.touchAction = "pan-y";
 
 
 // ====== FIX MOBILE & DESKTOP SCROLL ======
 
-pageFront.style.WebkitOverflowScrolling = "touch";
 
-pageBack.style.WebkitOverflowScrolling = "touch";
 
 // ====== FIX BOOK CONTAINER HEIGHT ======
 book.style.height = "auto";
