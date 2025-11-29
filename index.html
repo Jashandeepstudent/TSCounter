@@ -4910,13 +4910,16 @@ function openReaderFullScreen(story) {
 
   // ====== BOOK (Dual Pages for Flip) ======
   const book = document.createElement("div");
-  book.style.cssText = `
-    position: relative;
-    perspective: 2000px;
-    width: 880px;
-    max-width: 95%;
-    height: 460px;
-  `;
+book.style.cssText = `
+  position: relative;
+  perspective: 2000px;
+  width: 880px;
+  max-width: 95%;
+  max-height: 75vh;
+  height: auto;
+  overflow-y: auto;
+`;
+
   const pageFront = document.createElement("div");
   const pageBack = document.createElement("div");
   [pageFront, pageBack].forEach((p) => {
