@@ -4921,8 +4921,8 @@ book.style.cssText = `
   width: 880px;
   max-width: 95%;
   max-height: 90vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;   /* iPhone scrolling */
+  overflow: hidden; /* ❗ stop book from scrolling */
+
 `;
 
   const pageFront = document.createElement("div");
@@ -5309,6 +5309,13 @@ nextFullBtn.onclick = () => {
 renderIntoElement(pageFront, idx);
 updateCounter();
 
+// 🔥 Enable iPhone / Android scrolling inside sheets
+[pageFront, pageBack].forEach(p => {
+  p.style.pointerEvents = "auto";
+  p.style.overflowY = "auto";
+  p.style.WebkitOverflowScrolling = "touch"; // smooth scroll iPhone
+  p.style.touchAction = "pan-y"; // unlock vertical scroll gestures
+});
 
 
 
