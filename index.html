@@ -5176,13 +5176,28 @@ document.head.appendChild(style);  // ====== NARRATION CONTROLS ======
   speechSynthesis.onvoiceschanged = loadVoices;
   loadVoices();
 
-  function pickVoice(role) {
-    if (!voices.length) return null;
-    const pick = (rx) => voices.find((v) => rx.test(v.name) || (v.lang && rx.test(v.lang)));
-    if (role === "boy") return pick(/male|david|daniel|alex|john|peter/i) || voices[0];
-    if (role === "girl") return pick(/female|susan|samantha|victoria|anna|kate/i) || voices[0];
-    return voices[0];
+function pickVoice(role, isHindiLang = false) {
+  if (!voices.length) return null;
+
+  if (isHindiLang) {
+    // Prefer Hindi voices
+    const hindiVoice = voices.find(v =>
+      /hi-|hin|hindi/i.test(v.name) || v.lang === "hi-IN"
+    );
+    if (hindiVoice) return hindiVoice;
   }
+
+  // English voices (fallback)
+  const pick = rx => voices.find(v => rx.test(v.name) || (v.lang && rx.test(v.lang)));
+  if (role === "boy") return pick(/male|david|daniel|alex|john|peter/i) || voices[0];
+  if (role === "girl") return pick(/female|susan|samantha|victoria|anna|kate/i) || voices[0];
+  return voices[0];
+}
+
+// Detect if text is Hindi (Unicode range)
+function isHindi(text) {
+  return /[\u0900-\u097F]/.test(text);
+}
 
   // ====== RENDER PAGE INTO ELEMENT (word spans) ======
 function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
@@ -5384,31 +5399,47 @@ book.style.minHeight = "60vh";
   }
 
   // ====== CREATE UTTERANCE & TRACK ======
-  function createUtteranceForPage(pageIndex, resumeFromAbsChar = 0) {
-    const fullText = (sheets[pageIndex] && sheets[pageIndex].content) || "";
-    const sliceStart = Math.max(0, resumeFromAbsChar);
-    const u = new SpeechSynthesisUtterance(fullText.slice(sliceStart));
-    const chosen = pickVoice(currentVoice);
-    if (chosen) u.voice = chosen;
-    u.lang = chosen?.lang || "en-US";
+function createUtteranceForPage(pageIndex, resumeFromAbsChar = 0) {
+  const fullText = (sheets[pageIndex] && sheets[pageIndex].content) || "";
+  const sliceStart = Math.max(0, resumeFromAbsChar);
+  const u = new SpeechSynthesisUtterance(fullText.slice(sliceStart));
+
+  // 🔥 Detect if the page has Hindi characters
+  const isHindiStory = /[\u0900-\u097F]/.test(fullText);
+
+  // 🔥 Choose voice based on language
+  const chosen = pickVoice(isHindiStory ? "girl" : currentVoice, isHindiStory);
+  if (chosen) u.voice = chosen;
+
+  // 🔥 Apply correct language to speech engine
+  u.lang = chosen?.lang || (isHindiStory ? "hi-IN" : "en-US");
+
+  // 🔥 Natural tuning
+  if (isHindiStory) {
+    u.pitch = 1.05;
+    u.rate = 1.05;         // little slow & natural for Hindi
+  } else {
     u.pitch = currentVoice === "boy" ? 0.85 : 1.2;
     u.rate = currentRate;
-    u.onboundary = (ev) => {
-      if (ev && (ev.name === "word" || ev.name === "char") && typeof ev.charIndex === "number") {
-        const absChar = sliceStart + ev.charIndex;
-        resumeChar = absChar;
-        // map absolute char to a word index using wordRanges
-        for (let wi = 0; wi < wordRanges.length; wi++) {
-          const [s, e] = wordRanges[wi];
-          if (absChar >= s && absChar < e) {
-            highlightWordInElement(pageFront, wi);
-            break;
-          }
+  }
+
+  // === keep your highlight logic exactly same ===
+  u.onboundary = (ev) => {
+    if (ev && (ev.name === "word" || ev.name === "char") && typeof ev.charIndex === "number") {
+      const absChar = sliceStart + ev.charIndex;
+      resumeChar = absChar;
+      for (let wi = 0; wi < wordRanges.length; wi++) {
+        const [s, e] = wordRanges[wi];
+        if (absChar >= s && absChar < e) {
+          highlightWordInElement(pageFront, wi);
+          break;
         }
       }
-    };
-    return { utterance: u, sliceStart };
-  }
+    }
+  };
+
+  return { utterance: u, sliceStart };
+}
 
   // ====== SPEAK PAGE with resume support ======
   function speakPageWithResume(pageIndex, resumeFromAbsChar = 0) {
@@ -7371,24 +7402,42 @@ if (speechSynthesis.speaking || speechSynthesis.pending) {
   // --- Voice setup ---
   let voices = speechSynthesis.getVoices();
   speechSynthesis.onvoiceschanged = () => voices = speechSynthesis.getVoices();
+function detectLanguage(str) {
+  // If majority Hindi Unicode chars present → Hindi
+  const hindiChars = str.match(/[\u0900-\u097F]/g) || [];
+  const percent = hindiChars.length / str.length;
+  return percent > 0.10 ? "hi" : "en";  // 10% Hindi threshold
+}
 
-  const pickVoice = (gender) => {
-    if (gender === 'boy')
-      return voices.find(v => /male|alex|daniel|david|john/i.test(v.name)) || voices[0];
-    if (gender === 'girl')
-      return voices.find(v => /female|victoria|susan|emma|samantha|anna/i.test(v.name)) || voices[0];
-    return voices[0];
-  };
+const pickVoice = (gender, lang) => {
+  if (lang === "hi") {
+    // Prefer Hindi voices first
+    return voices.find(v => /hi-IN/i.test(v.lang)) ||
+           voices.find(v => /Hindi/i.test(v.name)) ||
+           voices[0];
+  }
+
+  // English voices
+  if (gender === 'boy')
+    return voices.find(v => /male|alex|daniel|david|john/i.test(v.name)) || voices[0];
+  if (gender === 'girl')
+    return voices.find(v => /female|samantha|emma|victoria|anna/i.test(v.name)) || voices[0];
+  return voices[0];
+};
+
 
   // --- Speak function ---
   function speakFromChar(startIndex = 0) {
+const currentPageText = rawText.slice(startIndex);
+const detectedLang = detectLanguage(currentPageText);   // 🔥 Hindi / English auto detect
+
     speechSynthesis.cancel();
-    utter = new SpeechSynthesisUtterance(rawText.slice(startIndex));
-    const voice = pickVoice(currentVoice);
-    if (voice) utter.voice = voice;
-    utter.lang = 'en-US';
-    utter.rate = currentRate;
-    utter.pitch = currentVoice === 'boy' ? 0.9 : 1.1;
+utter = new SpeechSynthesisUtterance(currentPageText);
+utter.lang = detectedLang === "hi" ? "hi-IN" : "en-US";
+utter.voice = pickVoice(currentVoice, detectedLang);
+utter.rate = currentRate;
+utter.pitch = currentVoice === 'boy' ? 0.9 : 1.1;
+
 
     const totalChars = rawText.length;
 
