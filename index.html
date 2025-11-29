@@ -5027,7 +5027,7 @@ function activateZenMode() {
     font-family: 'Georgia', serif;
     font-size: 18px;
     line-height: 1.8;
-    color: #2e2b23;
+    color: #2e2b23;m
     text-align: justify;
     animation: zenFadeIn 0.6s ease;
   `;
@@ -5206,18 +5206,21 @@ function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
 
   // Scroll Wrapper
   const wrap = document.createElement("div");
-  wrap.className = "pageContentWrap";
-  wrap.style.cssText = `
-    max-height: 90vh;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 40px; 
-    wrap.style.maxHeight = "85vh";                // visible area
-wrap.style.overflowY = "scroll";              // scroll container
-wrap.style.WebkitOverflowScrolling = "touch"; // important for iPhone scrolling
-wrap.style.touchAction = "pan-y";             // allow vertical scroll gesture
-wrap.style.paddingBottom = "20px";            // avoid cutoff of last line
+wrap.style.cssText = `
+  position: relative;
+  width: 100%;
+  height: auto;
+  max-height: 85vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 24px;
+`;
+wrap.innerHTML = text;   // add your story text inside wrapper
+el.appendChild(wrap);
 
-  `;
+el.style.pointerEvents = "auto";
+;
 
   wordRanges = [];
   let pos = 0;
