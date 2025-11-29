@@ -2,7 +2,6 @@
 
 
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -4911,18 +4910,26 @@ function openReaderFullScreen(story) {
 
   // ====== BOOK (Dual Pages for Flip) ======
   const book = document.createElement("div");
-  book.style.cssText = `
-    position: relative;
-    perspective: 2000px;
-    width: 880px;
-    max-width: 95%;
-    height: 460px;
-  `;
+book.style.cssText = `
+  position: relative;
+  perspective: 2000px;
+  width: 880px;
+  max-width: 95%;
+
+  height: 82vh;
+  max-height: 88vh;
+
+  overflow-y: auto;                     
+  -webkit-overflow-scrolling: touch;    
+  overscroll-behavior: contain;          /* 🟢 Prevent bounce-breaking on Android & iPhone */
+`;
+
+
   const pageFront = document.createElement("div");
   const pageBack = document.createElement("div");
   [pageFront, pageBack].forEach((p) => {
     Object.assign(p.style, {
-      position: "relative",
+      position: "absolute",
       inset: 0,
       padding: "28px",
       background: "#fffef9",
@@ -4936,7 +4943,12 @@ function openReaderFullScreen(story) {
       textAlign: "justify",
       backfaceVisibility: "hidden",
       transformStyle: "preserve-3d",
-      overflowY: "auto",
+
+        overflowY: "auto",
+  WebkitOverflowScrolling: "touch",   // iPhone smooth scroll
+  touchAction: "pan-y",                // universal finger scroll
+  pointerEvents: "auto",               // makes touch recognized
+  overscrollBehavior: "none",      
     });
   });
   pageBack.style.transform = "rotateY(180deg)";
@@ -5211,60 +5223,6 @@ function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
     el.appendChild(span);
   });
 }
-// ====== PAGE COUNTER ======
-const pageCounter = document.createElement("div");
-pageCounter.id = "pageCounter";
-pageCounter.style.cssText = `
-  margin-top: 8px;
-  font-weight: 600;
-  font-size: 15px;
-`;
-pageCounter.textContent = `Page 1 / ${sheets.length}`;
-body.appendChild(pageCounter);
-
-// ====== PAGE NAV BUTTON LOGIC ======
-const prevFullBtn = document.getElementById("prevFullBtn");
-const nextFullBtn = document.getElementById("nextFullBtn");
-
-// 🔥 Counter updater
-function updateCounter() {
-  pageCounter.textContent = `Page ${idx + 1} / ${sheets.length}`;
-}
-
-// 🔥 Flip prev page
-prevFullBtn.onclick = () => {
-  if (idx > 0) {
-    idx--;
-    renderIntoElement(pageFront, idx);
-    updateCounter();
-  }
-};
-
-// 🔥 Flip next page
-nextFullBtn.onclick = () => {
-  if (idx < sheets.length - 1) {
-    idx++;
-    renderIntoElement(pageFront, idx);
-    updateCounter();
-  }
-};
-
-// ====== INITIAL RENDER ======
-renderIntoElement(pageFront, idx);
-updateCounter();
-
-// ====== FIX MOBILE & DESKTOP SCROLL ======
-pageFront.style.overflowY = "auto";
-pageFront.style.WebkitOverflowScrolling = "touch";
-pageFront.style.touchAction = "pan-y";
-
-pageBack.style.overflowY = "auto";
-pageBack.style.WebkitOverflowScrolling = "touch";
-pageBack.style.touchAction = "pan-y";
-
-// ====== FIX BOOK CONTAINER HEIGHT ======
-book.style.height = "auto";
-book.style.minHeight = "60vh";
 
 
   function highlightWordInElement(el, wi) {
