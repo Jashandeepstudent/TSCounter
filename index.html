@@ -4915,15 +4915,10 @@ book.style.cssText = `
   perspective: 2000px;
   width: 880px;
   max-width: 95%;
-
-  height: 82vh;
-  max-height: 88vh;
-
-  overflow-y: auto;                     
-  -webkit-overflow-scrolling: touch;    
-  overscroll-behavior: contain;          /* 🟢 Prevent bounce-breaking on Android & iPhone */
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;   /* iPhone scrolling */
 `;
-
 
   const pageFront = document.createElement("div");
   const pageBack = document.createElement("div");
@@ -4943,12 +4938,7 @@ book.style.cssText = `
       textAlign: "justify",
       backfaceVisibility: "hidden",
       transformStyle: "preserve-3d",
-
-        overflowY: "auto",
-  WebkitOverflowScrolling: "touch",   // iPhone smooth scroll
-  touchAction: "pan-y",                // universal finger scroll
-  pointerEvents: "auto",               // makes touch recognized
-  overscrollBehavior: "none",      
+      overflowY: "auto",
     });
   });
   pageBack.style.transform = "rotateY(180deg)";
@@ -5193,6 +5183,17 @@ document.head.appendChild(style);  // ====== NARRATION CONTROLS ======
 function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
   const text = (sheets[pageIndex] && sheets[pageIndex].content) || "";
   el.innerHTML = "";
+
+  // 🔥 Create scrollable inner wrapper
+  const wrap = document.createElement("div");
+  wrap.className = "pageContentWrap";
+  wrap.style.cssText = `
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 40px;
+  `;
+
   wordRanges = [];
   let pos = 0;
   const words = text.replace(/\n+/g, " \n ").split(/\s+/).filter(Boolean);
@@ -5208,21 +5209,73 @@ function renderIntoElement(el, pageIndex, highlightWordIndex = -1) {
     wordRanges.push([start, end]);
     pos = end;
 
-    // --- Handle marking and highlighting ---
     span.addEventListener("click", () => {
       if (markingMode) {
         markingMode = false;
         localStorage.setItem(savedKey, JSON.stringify({ sheetIndex: pageIndex, wordIndex: wi }));
-        highlightWordInElement(el, wi);
-        showToast(`✅ Marked your last read at word #${wi + 1}`);
+        highlightWordInElement(wrap, wi);
+        showToast(`✅ Marked at word: ${wi + 1}`);
         enableRemoveBtn(true);
       }
     });
 
     if (wi === highlightWordIndex) span.classList.add("highlight");
-    el.appendChild(span);
+    wrap.appendChild(span);
   });
+
+  el.appendChild(wrap);
 }
+// ====== PAGE COUNTER ======
+const pageCounter = document.createElement("div");
+pageCounter.id = "pageCounter";
+pageCounter.style.cssText = `
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 15px;
+`;
+pageCounter.textContent = `Page 1 / ${sheets.length}`;
+body.appendChild(pageCounter);
+
+// ====== PAGE NAV BUTTON LOGIC ======
+const prevFullBtn = document.getElementById("prevFullBtn");
+const nextFullBtn = document.getElementById("nextFullBtn");
+
+// 🔥 Counter updater
+function updateCounter() {
+  pageCounter.textContent = `Page ${idx + 1} / ${sheets.length}`;
+}
+
+// 🔥 Flip prev page
+prevFullBtn.onclick = () => {
+  if (idx > 0) {
+    idx--;
+    renderIntoElement(pageFront, idx);
+    updateCounter();
+  }
+};
+
+// 🔥 Flip next page
+nextFullBtn.onclick = () => {
+  if (idx < sheets.length - 1) {
+    idx++;
+    renderIntoElement(pageFront, idx);
+    updateCounter();
+  }
+};
+
+// ====== INITIAL RENDER ======
+renderIntoElement(pageFront, idx);
+updateCounter();
+
+// ====== FIX MOBILE & DESKTOP SCROLL ======
+
+pageFront.style.WebkitOverflowScrolling = "touch";
+
+pageBack.style.WebkitOverflowScrolling = "touch";
+
+// ====== FIX BOOK CONTAINER HEIGHT ======
+book.style.height = "auto";
+book.style.minHeight = "60vh";
 
 
   function highlightWordInElement(el, wi) {
