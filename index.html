@@ -14080,13 +14080,13 @@ try {
 <script>
 async function waitForFirebase() {
   let connected = false;
-  for (let i = 0; i < 10; i++) { // retry 10 times
+  for (let i = 0; i < 5; i++) { // retry 10 times
     try {
       await get(ref(db, '/'));
       connected = true;
       break;
     } catch (e) {
-      await new Promise(r => setTimeout(r, 800)); // wait retry
+      await new Promise(r => setTimeout(r, 200)); // wait retry
     }
   }
   return connected;
@@ -14140,34 +14140,7 @@ document.addEventListener("keydown", function (e) {
 // Disable right-click (optional)
 document.addEventListener("contextmenu", e => {
   e.preventDefault();
-  showExperiencePopup();
 });
-function showExperiencePopup() {
-  const div = document.createElement("div");
-  div.style.cssText = `
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 999999;
-  `;
-  div.innerHTML = `
-    <div style="
-      background: white; padding: 26px; border-radius: 14px;
-      max-width: 360px; width: 90%; text-align: center;
-      font-family: Inter, sans-serif; box-shadow:0 8px 25px rgba(0,0,0,0.25);
-    ">
-      <h2 style="margin:0 0 12px;">How is your experience going?</h2>
-      <button id="exp_close" style="
-        padding: 10px 18px; border-radius: 10px; border:none;
-        cursor: pointer; background:#2575fc; color:white; font-weight:600;">
-        Continue
-      </button>
-    </div>
-  `;
-  document.body.appendChild(div);
-  document.getElementById("exp_close").onclick = () => div.remove();
-}
-
 </script>
 </body>
 
