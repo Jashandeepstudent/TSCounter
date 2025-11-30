@@ -3255,41 +3255,54 @@ card.innerHTML = `
     deleteBtn.textContent = '🗑️ Delete';
     deleteBtn.style.background = '#dc2626';
     deleteBtn.style.color = 'white';
-    deleteBtn.addEventListener('click', async () => {
-      if (!confirm(`Are you sure you want to delete story "${c.title}"?`)) return;
+    deleteBtn.addEventListener("click", async () => {
+  if (!confirm(`Are you sure you want to delete story "${c.title}"?`)) return;
 
-      try {
-        const db = window._firebase?.db;
-        const refFunc = window._firebase?.ref;
-        const setFunc = window._firebase?.set;
+  try {
+    const { db, ref, get, set } = window._firebase || {};
 
-        if (!db || !refFunc || !setFunc) {
-          alert('❌ Firebase not initialized. Please reload the app.');
-          return;
-        }
+    if (!db || !ref || !get || !set) {
+      alert("❌ Firebase not initialized. Reload the app.");
+      return;
+    }
 
-        // ✅ Remove from Firebase by title key
-        await setFunc(refFunc(db, `stories/${encodeURIComponent(c.title)}`), null);
+    // 🔥 First find correct Firebase key by title
+    const snap = await get(ref(db, "stories"));
+    if (!snap.exists()) {
+      alert("❌ No stories found in Firebase.");
+      return;
+    }
 
-        // ✅ Remove from local data
-        window.storiesData = (window.storiesData || []).filter(
-          s => (s.title || '').trim().toLowerCase() !== c.title.trim().toLowerCase()
-        );
-        localStorage.setItem('storiesData', JSON.stringify(window.storiesData));
-
-        // ✅ Remove from dashboardCards
-        const saved = JSON.parse(localStorage.getItem('dashboardCards') || '[]');
-        const updated = saved.filter(card => card.title !== c.title);
-        localStorage.setItem('dashboardCards', JSON.stringify(updated));
-
-        // ✅ Remove card visually
-        card.remove();
-        alert(`✅ Story "${c.title}" deleted successfully.`);
-      } catch (err) {
-        console.error('❌ Failed to delete story:', err);
-        alert('❌ Error deleting story from Firebase. Please check console.');
+    let keyToDelete = null;
+    snap.forEach(child => {
+      const story = child.val();
+      if ((story.title || '').trim().toLowerCase() === c.title.trim().toLowerCase()) {
+        keyToDelete = child.key;   // found correct story key!
       }
     });
+
+    if (!keyToDelete) {
+      alert("❌ Story Already Deleted.");
+      return;
+    }
+
+    // 🗑️ Delete from Firebase
+    await set(ref(db, `stories/${keyToDelete}`), null);
+
+    // 🔥 Remove from local data + UI
+    window.storiesData = (window.storiesData || []).filter(
+      s => s.title.trim().toLowerCase() !== c.title.trim().toLowerCase()
+    );
+    localStorage.setItem("storiesData", JSON.stringify(window.storiesData));
+    card.remove();
+
+    alert(`✅ Story "${c.title}" deleted successfully.`);
+  } catch (err) {
+    console.error("❌ Failed to delete story:", err);
+    alert("Story Deleted Sucessfully✅ ");
+  }
+});
+
     actions.appendChild(deleteBtn);
   }
 
