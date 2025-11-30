@@ -4905,13 +4905,15 @@ function openReaderFullScreen(story) {
 
   // ====== BODY ======
   const body = document.createElement("div");
-  Object.assign(body.style, {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: "20px",
-  });
+Object.assign(body.style, {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  padding: "20px",
+  overflowY: "auto",          // 🔥 allow body to scroll
+  WebkitOverflowScrolling: "touch",
+});
 
   // ====== BOOK (Dual Pages for Flip) ======
   const book = document.createElement("div");
