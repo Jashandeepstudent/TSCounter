@@ -13927,7 +13927,7 @@ document.addEventListener("click", (e) => {
 </script>
 
 
-<!-- BEGIN: Meurbal 5-minute pause gate (inserted by ChatGPT) -->
+
 <div id="meurbalPauseGate" style="
   position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
   flex-direction: column; z-index: 2147483647; background: rgba(0,0,0,0.78); color: #fff;
@@ -13947,8 +13947,7 @@ document.addEventListener("click", (e) => {
 </div>
 
 <script>
-// Meurbal 5-minute pause gate (injected by ChatGPT)
-// Behavior: timer starts on first open of site (welcome page), shows gate after 5 minutes
+
 // Gate will not show if localStorage.meurbal_registered == "true"
 (function(){
   // don't re-inject if present
@@ -13975,8 +13974,8 @@ try {
 } catch(e){ /* ignore */ }
 
 
-  // Show gate after 5 minutes (300000 ms) starting from page load
-  var PAUSE_MS = 5 * 60 * 1000;
+  // Show gate after 2 minutes (300000 ms) starting from page load
+  var PAUSE_MS = 2 * 60 * 1000;
 
   // For safety, only start this when user is on top-level welcome or not deep inside editor.
   // The user explicitly chose "Timer starts as soon as user opens the website (from welcome page)".
