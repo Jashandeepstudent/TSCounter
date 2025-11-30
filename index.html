@@ -12,6 +12,8 @@
 
 
   <title>Meurbal - Where Dream.Write.Live</title>
+<link rel="preload" href="https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js" as="script">
+
 <!-- ========== FAVICONS (MUST BE FIRST) ========== -->
 <link rel="icon" type="image/svg+xml" href="/melogo.svg"> <!-- best for modern browsers -->
 <link rel="shortcut icon" href="/favicon.ico"> <!-- Google safe -->
@@ -367,6 +369,14 @@ input, textarea, select {
   background:#ff0048 !important;
   box-shadow:0 0 10px #ff0048;
   color:#fff;
+}
+.low-power-mode * {
+  transition: none !important;
+  animation: none !important;
+}
+.low-power-mode .wall-wrap,
+.low-power-mode .wall {
+  display: none !important;
 }
 
     /* Form */
@@ -1533,11 +1543,12 @@ if (headerRow) {
     <button class="btn btn-primary" id="saveProfileBtn">Create Profile</button>
   </div>
 
-
- <!-- Choose Type Popup -->
+<!-- Choose Type Popup -->
+<!-- Choose Type Popup -->
 <div id="chooseTypePopup" class="hidden popup">
   <div class="popup-content" style="position: relative; padding: 20px;">
-    <!-- Close button -->
+
+    <!-- Close button inside -->
     <span id="closeChooseTypePopup" 
           style="position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer;">
       &times;
@@ -1549,22 +1560,40 @@ if (headerRow) {
       <button id="createSerialBtn" class="btn btn-secondary">Series</button>
     </div>
   </div>
+
+  <!-- ❌ Cross button OUTSIDE popup box -->
+  <span id="closeChooseTypePopupOutside"
+        style="
+          position: absolute;
+          top: 18px;
+          right: 18px;
+          font-size: 40px;
+          cursor: pointer;
+          color: white;
+          font-weight: 700;
+          text-shadow: 0 0 8px rgba(0,0,0,0.7);
+        ">
+    ×
+  </span>
 </div>
 
 <script>
-  // Get elements
-  const popup = document.getElementById('chooseTypePopup');
-  const closeBtn = document.getElementById('closeChooseTypePopup');
+  const popup = document.getElementById("chooseTypePopup");
+  const closeBtn = document.getElementById("closeChooseTypePopup");
+document.getElementById("closeChooseTypePopup").onclick =
+document.getElementById("closeChooseTypePopupOutside").onclick =
+  () => document.getElementById("chooseTypePopup").classList.add("hidden");
 
-  // Close popup on button click
-  closeBtn.addEventListener('click', () => {
-    popup.classList.add('hidden'); // hide the popup
+  // Show popup (call this when needed)
+  function openChooseTypePopup() {
+    popup.classList.remove("hidden");
+  }
+
+  // Close popup
+  closeBtn.addEventListener("click", () => {
+    popup.classList.add("hidden");
   });
-
-  // Optional: Open popup for testing
-  // popup.classList.remove('hidden');
 </script>
-
 
   <!-- Slot Name / Unlock Popup -->
   <div id="slotNamePopup" class="hidden popup">
@@ -14315,6 +14344,12 @@ if ('serviceWorker' in navigator) {
         authPopup.setAttribute('aria-hidden', 'false');
       }
     });
+navigator.getBattery?.().then(b => {
+  if (b.level < 0.20 || b.charging === false && b.level < 0.30 && b.dischargingTime < 3000) {
+    document.body.classList.add("low-power-mode");
+  }
+});
+
 </script>
 
 </html>
