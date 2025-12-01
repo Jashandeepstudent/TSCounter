@@ -18,10 +18,16 @@
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+
+  // Initialize gtag
   gtag('js', new Date());
 
-  gtag('config', 'AW-17768249358');
+  // Disable automatic page_view for SPA
+  gtag('config', 'AW-17768249358', {
+    send_page_view: false
+  });
 </script>
+
 <!-- ========== FAVICONS (MUST BE FIRST) ========== -->
 <link rel="icon" type="image/svg+xml" href="/melogo.svg"> <!-- best for modern browsers -->
 <link rel="shortcut icon" href="/favicon.ico"> <!-- Google safe -->
