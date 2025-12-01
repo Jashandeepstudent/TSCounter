@@ -4212,6 +4212,11 @@ function renderBrowseStories(
         scrollWrap.style.gap = "12px";
         scrollWrap.style.padding = "12px";
         scrollWrap.style.scrollBehavior = "smooth";
+scrollWrap.style.overflowY = 'hidden';
+scrollWrap.style.webkitOverflowScrolling = 'touch';
+scrollWrap.style.touchAction = 'pan-x';
+scrollWrap.style.scrollSnapType = 'x proximity';
+
         scrollWrap.style.scrollbarWidth = "thin";
         scrollWrap.style.flexWrap = "nowrap";
         section.appendChild(scrollWrap);
@@ -6396,6 +6401,11 @@ function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount
       scrollWrap.style.gap = '12px';
       scrollWrap.style.padding = '12px';
       scrollWrap.style.scrollBehavior = 'smooth';
+scrollWrap.style.overflowY = 'hidden';
+scrollWrap.style.webkitOverflowScrolling = 'touch';
+scrollWrap.style.touchAction = 'pan-x';
+scrollWrap.style.scrollSnapType = 'x proximity';
+
       scrollWrap.style.scrollSnapType = 'x mandatory';
       scrollWrap.style.scrollbarWidth = 'thin';
 
@@ -6444,6 +6454,11 @@ function renderBrowseSerials(list = null, opts = { includeDemo: false, demoCount
       scrollWrap.style.gap = '12px';
       scrollWrap.style.padding = '12px';
       scrollWrap.style.scrollBehavior = 'smooth';
+scrollWrap.style.overflowY = 'hidden';
+scrollWrap.style.webkitOverflowScrolling = 'touch';
+scrollWrap.style.touchAction = 'pan-x';
+scrollWrap.style.scrollSnapType = 'x proximity';
+
       scrollWrap.style.scrollSnapType = 'x mandatory';
       scrollWrap.style.scrollbarWidth = 'thin';
       section.appendChild(scrollWrap);
