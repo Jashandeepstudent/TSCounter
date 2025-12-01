@@ -18,16 +18,10 @@
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-
-  // Initialize gtag
   gtag('js', new Date());
 
-  // Disable automatic page_view for SPA
-  gtag('config', 'AW-17768249358', {
-    send_page_view: false
-  });
+  gtag('config', 'AW-17768249358');
 </script>
-
 <!-- ========== FAVICONS (MUST BE FIRST) ========== -->
 <link rel="icon" type="image/svg+xml" href="/melogo.svg"> <!-- best for modern browsers -->
 <link rel="shortcut icon" href="/favicon.ico"> <!-- Google safe -->
@@ -14156,39 +14150,6 @@ document.addEventListener("contextmenu", e => {
   e.preventDefault();
 });
 </script>
-// VISITOR TRACKING
-async function recordVisit() {
-  const today = new Date().toISOString().slice(0, 10);
-  const analyticsRef = ref(db, "analytics");
-
-  const snap = await get(analyticsRef);
-  let data = snap.exists() ? snap.val() : {};
-
-  const total = (data.totalVisitors || 0) + 1;
-  const daily = data.dailyVisitors || {};
-  const todayCount = (daily[today] || 0) + 1;
-
-  let highest = data.highestVisitors || 0;
-  let highestDate = data.highestDate || "";
-
-  if (todayCount > highest) {
-    highest = todayCount;
-    highestDate = today;
-  }
-
-  await update(analyticsRef, {
-    totalVisitors: total,
-    dailyVisitors: { ...daily, [today]: todayCount },
-    highestVisitors: highest,
-    highestDate
-  });
-
-  console.log("📌 Visitor counted:", todayCount);
-}
-
-// 🚀 Count visitor when page is ready (works ONLY when script is at end)
-recordVisit();
-
 </body>
 
 
