@@ -2,6 +2,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -664,6 +665,23 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+/* 🔥 Track total visits */
+async function trackVisit() {
+  const visitsRef = ref(db, "analytics/totalVisits");
+  const snap = await get(visitsRef);
+  let currentCount = snap.exists() ? snap.val() : 0;
+  await set(visitsRef, currentCount + 1);
+}
+trackVisit();
+
+/* 👁 Show visits live on screen (optional) */
+const visitsRef = ref(db, "analytics/totalVisits");
+onValue(visitsRef, (snapshot) => {
+  if (document.getElementById("visitCount")) {
+    document.getElementById("visitCount").innerText = snapshot.val();
+  }
+});
+</script>
 
 const statusBox = document.createElement('div');
 statusBox.id = '__firebase_status_box';
