@@ -175,30 +175,6 @@
 input, textarea, select {
   font-size: 16px !important;
 }
-/* Hide any top banner / header from AppMySite */
-div[id*="appmysite"],
-header[id*="appmysite"],
-div[class*="appmysite"],
-header[class*="appmysite"],
-a[href*="appmysite"]
-{
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    pointer-events: none !important;
-}
-/* Cover the top area (watermark hidden under it) */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 70px; /* increase if needed */
-    background: #ffffff; /* or your theme color */
-    z-index: 999999;
-}
 
     /* Header */
     header{position:fixed;top:12px;left:12px;z-index:60}
@@ -679,7 +655,7 @@ loadCurrentUsername();
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
-  authDomain: "meurbal.site",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
   databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
   projectId: "meurbal-d3c72",
   storageBucket: "meurbal-d3c72.firebasestorage.app",
@@ -3012,157 +2988,144 @@ if (sheets.length === 0) {
 }
 
 
-      publishStoryBtn.addEventListener('click', async ()=>{
-        saveActiveSheet(); const payloadSheets = sheets.map(s=>({content: s.content || ''}));
-       if(editType === 'story'){
-  const writerName = document.getElementById('writerNameInput')?.value.trim() || 'Unknown';
-  const publishDate = document.getElementById('publishDateInput')?.value || new Date().toISOString().split('T')[0];
-  const payload = {
-    title: title,
-    genre: genre,
-    description: desc,
-    sheets: payloadSheets,
-    status: 'Public',
-    cover: window._currentStoryCover || '',
-    writerName: writerName,
-    publishDate: publishDate
-  };
-
-          // Save locally first
-          if(isEdit){ storiesData[opts.index] = Object.assign({}, storiesData[opts.index], payload); }
-          else { storiesData.push(payload); }
-          // Attempt to save to Firebase (overwrite same title key)
-          try{
-            if(window._firebase && window._firebase.set){
-              const { db, ref, set } = window._firebase;
-              await set(ref(db, `stories/${encodeURIComponent(title)}`), payload);
-              console.log('Saved story to Firebase:', title);
-            }
-          }catch(err){ console.warn('Firebase save failed for story', err); }
-          editorDiv.remove(); showDashboard('stories');
-          return;
-        }
-        // serial path
-        if(editType === 'serial'){
-          const ser = serialsData[opts.index]; if(!ser){ alert('Serial not found'); return; }
-          if(isEdit && opts.episodeIndex!=null){
-            ser.episodes[opts.episodeIndex] = Object.assign({}, ser.episodes[opts.episodeIndex], { title: title, description: desc, sheets: payloadSheets, status: 'Public' });
-            serialsData[opts.index] = ser;
-          try{
-            if(window._firebase && window._firebase.set){
-              const { db, ref, set } = window._firebase;
-const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
-ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
-
-const inputDate = document.getElementById('serialPublishDateInput')?.value;
-ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
-
-
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-              saveLocal('serialsData', serialsData);
-saveLocal('serialSlots', serialSlots);
-// ✅ Upload full serial with new episode to Firebase
-try {
-  if (window._firebase && window._firebase.set) {
-    const { db, ref, set } = window._firebase;
-const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
-ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
-
-const inputDate = document.getElementById('serialPublishDateInput')?.value;
-ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
-
-
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
+      
+publishStoryBtn.addEventListener('click', async ()=>{
+  // Prevent duplicate publishes
+  if (window.__meurbal_publish_lock) {
+    console.warn('Publish already in progress.');
+    return;
   }
-} catch (err) {
-  console.warn('❌ Firebase update failed for new episode:', err);
-}
-console.log('Saved serial to Firebase:', ser.title);
-            }
-          }catch(err){ console.warn('Firebase save failed for serial', err); }
+  window.__meurbal_publish_lock = true;
 
-          } else if(isNewEpisode){
-            ser.episodes = ser.episodes || [];
-            ser.episodes.push({ title: title || 'Episode', description: desc || '', sheets: payloadSheets, status: 'Public' });
-            serialsData[opts.index] = ser;
-            try{
-              if(window._firebase && window._firebase.set){
-                const { db, ref, set } = window._firebase;
-const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
-ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
+  // Show uploading overlay (support legacy showUploading() if present)
+  try {
+    if (typeof showUploading === 'function') showUploading();
+    else if (typeof showUploadPopup === 'function') showUploadPopup('Publishing…');
+    publishStoryBtn.disabled = true;
 
-const inputDate = document.getElementById('serialPublishDateInput')?.value;
-ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
+    saveActiveSheet();
+    const payloadSheets = sheets.map(s => ({ content: s.content || '' }));
 
+    // Helper: Firebase write with timeout fallback
+    async function safeFirebaseSave(path, data) {
+      if (!window._firebase || !window._firebase.set) return false;
 
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-                saveLocal('serialsData', serialsData);
-saveLocal('serialSlots', serialSlots);
-// ✅ Upload full serial with new episode to Firebase
-try {
-  if (window._firebase && window._firebase.set) {
-    const { db, ref, set } = window._firebase;
-const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
-ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
+      const { db, ref, set } = window._firebase;
 
-const inputDate = document.getElementById('serialPublishDateInput')?.value;
-ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
+      const uploadTask = set(ref(db, path), data);
 
+      // 8-second timeout — if exceeded, alert & continue in background
+      const timeout = new Promise((resolve) =>
+        setTimeout(() => resolve("timeout"), 8000)
+      );
 
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
+      const result = await Promise.race([uploadTask, timeout]);
+
+      if (result === "timeout") {
+        alert("Publishing is taking longer than usual. It will continue uploading in the background.");
+        console.warn("⚠ Firebase upload still running in the background...");
+        return false; // we treat as background mode
+      }
+
+      return true;
+    }
+
+    // ------------------ STORY PATH ------------------
+    if (editType === 'story') {
+      const writerName = document.getElementById('writerNameInput')?.value.trim() || 'Unknown';
+      const publishDate = document.getElementById('publishDateInput')?.value || new Date().toISOString().split('T')[0];
+
+      const payload = {
+        title: title,
+        genre: genre,
+        description: desc,
+        sheets: payloadSheets,
+        status: 'Public',
+        cover: window._currentStoryCover || '',
+        writerName,
+        publishDate
+      };
+
+      // Local update
+      if (isEdit) {
+        storiesData[opts.index] = Object.assign({}, storiesData[opts.index], payload);
+      } else {
+        storiesData.push(payload);
+      }
+
+      // Firebase write with timeout handling
+      safeFirebaseSave(`stories/${encodeURIComponent(title)}`, payload);
+
+      // Close UI instantly
+      editorDiv.remove();
+      showDashboard('stories');
+      return;
+    }
+
+    // ------------------ SERIAL PATH ------------------
+    if (editType === 'serial') {
+      const ser = serialsData[opts.index];
+      if (!ser) { alert('Serial not found'); return; }
+
+      // Set writer + date
+      const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
+      const inputDate = document.getElementById('serialPublishDateInput')?.value;
+      ser.writerName = inputWriter || ser.writerName || 'Unknown';
+      ser.publishDate = inputDate || ser.publishDate || new Date().toISOString().split('T')[0];
+
+      if (isEdit && opts.episodeIndex != null) {
+        ser.episodes[opts.episodeIndex] = {
+          title: title,
+          description: desc,
+          sheets: payloadSheets,
+          status: 'Public'
+        };
+      } else if (isNewEpisode) {
+        ser.episodes = ser.episodes || [];
+        ser.episodes.push({
+          title: title || "Episode",
+          description: desc || "",
+          sheets: payloadSheets,
+          status: "Public"
+        });
+      } else {
+        ser.title = title;
+        ser.genre = genre;
+        ser.description = desc;
+      }
+
+      serialsData[opts.index] = ser;
+
+      // Update slot mirror
+      const slot = serialSlots.find(s => s.name === ser.title);
+      if (slot) slot.episodes = ser.episodes.slice();
+
+      // Local save
+      try { saveLocal('serialsData', serialsData); } catch(e){}
+      try { saveLocal('serialSlots', serialSlots); } catch(e){}
+
+      // Firebase write with timeout fallback
+      safeFirebaseSave(`serials/${encodeURIComponent(ser.title.trim())}`, ser);
+
+      // UI finishes instantly
+      editorDiv.remove();
+      showDashboard('serials');
+      return;
+    }
+
+  } catch (err) {
+    console.error('Publish error', err);
+    alert('Publish failed — check console for details.');
+  } finally {
+    // Hide uploading overlay
+    if (typeof hideUploading === 'function') hideUploading();
+    else if (typeof hideUploadPopup === 'function') hideUploadPopup();
+
+    publishStoryBtn.disabled = false;
+    window.__meurbal_publish_lock = false;
   }
-} catch (err) {
-  console.warn('❌ Firebase update failed for new episode:', err);
-}
-console.log('Saved new episode (serial) to Firebase:', ser.title);
-              }
-            }catch(err){ console.warn('Firebase save failed for new episode', err); }
+});
 
-          try{
-            if(window._firebase && window._firebase.set){
-              const { db, ref, set } = window._firebase;
-const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
-ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
-
-const inputDate = document.getElementById('serialPublishDateInput')?.value;
-ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
-
-
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-              saveLocal('serialsData', serialsData);
-saveLocal('serialSlots', serialSlots);
-// ✅ Upload full serial with new episode to Firebase
-try {
-  if (window._firebase && window._firebase.set) {
-    const { db, ref, set } = window._firebase;
- const inputWriter = document.getElementById('serialWriterNameInput')?.value?.trim();
-ser.writerName = inputWriter && inputWriter.length ? inputWriter : (ser.writerName || 'Unknown');
-
-const inputDate = document.getElementById('serialPublishDateInput')?.value;
-ser.publishDate = inputDate && inputDate.length ? inputDate : (ser.publishDate || new Date().toISOString().split('T')[0]);
-
-
-    await set(ref(db, `serials/${encodeURIComponent(ser.title.trim())}`), ser);
-    console.log('✅ Uploaded full serial with new episode to Firebase:', ser.title);
-  }
-} catch (err) {
-  console.warn('❌ Firebase update failed for new episode:', err);
-}
-console.log('Saved serial to Firebase:', ser.title);
-            }
-          }catch(err){ console.warn('Firebase save failed for serial', err); }
-
-          } else {
-            serialsData[opts.index] = Object.assign({}, ser, { title: title, genre: genre, description: desc });
-          }
-          const slot = serialSlots.find(s=> s.name === ser.title);
-          if(slot) slot.episodes = ser.episodes.slice();
-          editorDiv.remove(); showDashboard('serials');
-          return;
-        }
-      });
 
 saveDraftBtnLocal.addEventListener('click', async ()=>{
   saveActiveSheet();
@@ -10676,7 +10639,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/fireba
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
-  authDomain: "meurbal.site",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
   databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
   projectId: "meurbal-d3c72",
   storageBucket: "meurbal-d3c72.firebasestorage.app",
@@ -10766,6 +10729,23 @@ function attachAnalyticsButtons() {
   });
 }
 document.addEventListener('DOMContentLoaded', attachAnalyticsButtons);
+</script>
+
+
+<!-- Upload Overlay -->
+<div id="uploadOverlay" style="position:fixed; inset:0; display:none; z-index:999999; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; color:white; font-family:Inter,system-ui; text-align:center;">
+  <div>
+    <h2 style="margin-bottom:10px;font-size:22px;font-weight:800;">Publishing…</h2>
+    <p id="uploadMsg" style="opacity:0.9;margin-bottom:14px;">Uploading your content…</p>
+    <div style="width:200px;height:10px;background:rgba(255,255,255,0.2);border-radius:20px;margin:auto;margin-bottom:12px;overflow:hidden;">
+      <div id="uploadBar" style="height:100%;width:0%;background:white;transition:width .4s ease;"></div>
+    </div>
+  </div>
+</div>
+<script>
+let uploadLock=false;
+function showUploadPopup(msg="Uploading…"){uploadLock=true;document.getElementById("uploadMsg").textContent=msg;document.getElementById("uploadOverlay").style.display="flex";const b=document.getElementById("uploadBar");let p=10;b.style.width="10%";uploadLock.__i=setInterval(()=>{p=Math.min(95,p+Math.random()*15);b.style.width=p+"%"},500);}
+function hideUploadPopup(){const b=document.getElementById("uploadBar");b.style.width="100%";setTimeout(()=>{document.getElementById("uploadOverlay").style.display="none";b.style.width="0%";clearInterval(uploadLock.__i);uploadLock=false;},500);}
 </script>
 
 </body>
@@ -11683,7 +11663,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/fireba
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
-  authDomain: "meurbal.site",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
   databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
   projectId: "meurbal-d3c72",
   storageBucket: "meurbal-d3c72.firebasestorage.app",
@@ -11838,6 +11818,23 @@ function attachAnalyticsButtons() {
   });
 }
 document.addEventListener('DOMContentLoaded', attachAnalyticsButtons);
+</script>
+
+
+<!-- Upload Overlay -->
+<div id="uploadOverlay" style="position:fixed; inset:0; display:none; z-index:999999; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; color:white; font-family:Inter,system-ui; text-align:center;">
+  <div>
+    <h2 style="margin-bottom:10px;font-size:22px;font-weight:800;">Publishing…</h2>
+    <p id="uploadMsg" style="opacity:0.9;margin-bottom:14px;">Uploading your content…</p>
+    <div style="width:200px;height:10px;background:rgba(255,255,255,0.2);border-radius:20px;margin:auto;margin-bottom:12px;overflow:hidden;">
+      <div id="uploadBar" style="height:100%;width:0%;background:white;transition:width .4s ease;"></div>
+    </div>
+  </div>
+</div>
+<script>
+let uploadLock=false;
+function showUploadPopup(msg="Uploading…"){uploadLock=true;document.getElementById("uploadMsg").textContent=msg;document.getElementById("uploadOverlay").style.display="flex";const b=document.getElementById("uploadBar");let p=10;b.style.width="10%";uploadLock.__i=setInterval(()=>{p=Math.min(95,p+Math.random()*15);b.style.width=p+"%"},500);}
+function hideUploadPopup(){const b=document.getElementById("uploadBar");b.style.width="100%";setTimeout(()=>{document.getElementById("uploadOverlay").style.display="none";b.style.width="0%";clearInterval(uploadLock.__i);uploadLock=false;},500);}
 </script>
 
 </body>
@@ -12414,7 +12411,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/fireba
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
-  authDomain: "meurbal.site",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
   databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
   projectId: "meurbal-d3c72",
   storageBucket: "meurbal-d3c72.firebasestorage.app",
@@ -12505,6 +12502,23 @@ function attachAnalyticsButtons() {
 document.addEventListener('DOMContentLoaded', attachAnalyticsButtons);
 </script>
 
+
+<!-- Upload Overlay -->
+<div id="uploadOverlay" style="position:fixed; inset:0; display:none; z-index:999999; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; color:white; font-family:Inter,system-ui; text-align:center;">
+  <div>
+    <h2 style="margin-bottom:10px;font-size:22px;font-weight:800;">Publishing…</h2>
+    <p id="uploadMsg" style="opacity:0.9;margin-bottom:14px;">Uploading your content…</p>
+    <div style="width:200px;height:10px;background:rgba(255,255,255,0.2);border-radius:20px;margin:auto;margin-bottom:12px;overflow:hidden;">
+      <div id="uploadBar" style="height:100%;width:0%;background:white;transition:width .4s ease;"></div>
+    </div>
+  </div>
+</div>
+<script>
+let uploadLock=false;
+function showUploadPopup(msg="Uploading…"){uploadLock=true;document.getElementById("uploadMsg").textContent=msg;document.getElementById("uploadOverlay").style.display="flex";const b=document.getElementById("uploadBar");let p=10;b.style.width="10%";uploadLock.__i=setInterval(()=>{p=Math.min(95,p+Math.random()*15);b.style.width=p+"%"},500);}
+function hideUploadPopup(){const b=document.getElementById("uploadBar");b.style.width="100%";setTimeout(()=>{document.getElementById("uploadOverlay").style.display="none";b.style.width="0%";clearInterval(uploadLock.__i);uploadLock=false;},500);}
+</script>
+
 </body>
 
 
@@ -12514,7 +12528,7 @@ document.addEventListener('DOMContentLoaded', attachAnalyticsButtons);
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
-  authDomain: "meurbal.site",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
   databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
   projectId: "meurbal-d3c72",
   storageBucket: "meurbal-d3c72.firebasestorage.app",
@@ -12522,6 +12536,7 @@ const firebaseConfig = {
   appId: "1:707190126856:web:128c972aef19934c81d4bd",
   measurementId: "G-4SBPDJHJDS"
 };
+
 // ---- Create status box ----
 (function(){
   if(document.getElementById('firebaseStatusBox')) return;
@@ -13559,7 +13574,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/fireba
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
-  authDomain: "meurbal.site",
+  authDomain: "meurbal-d3c72.firebaseapp.com",
   databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
   projectId: "meurbal-d3c72",
   storageBucket: "meurbal-d3c72.firebasestorage.app",
@@ -14174,6 +14189,23 @@ document.addEventListener("contextmenu", e => {
   e.preventDefault();
 });
 </script>
+
+<!-- Upload Overlay -->
+<div id="uploadOverlay" style="position:fixed; inset:0; display:none; z-index:999999; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; color:white; font-family:Inter,system-ui; text-align:center;">
+  <div>
+    <h2 style="margin-bottom:10px;font-size:22px;font-weight:800;">Publishing…</h2>
+    <p id="uploadMsg" style="opacity:0.9;margin-bottom:14px;">Uploading your content…</p>
+    <div style="width:200px;height:10px;background:rgba(255,255,255,0.2);border-radius:20px;margin:auto;margin-bottom:12px;overflow:hidden;">
+      <div id="uploadBar" style="height:100%;width:0%;background:white;transition:width .4s ease;"></div>
+    </div>
+  </div>
+</div>
+<script>
+let uploadLock=false;
+function showUploadPopup(msg="Uploading…"){uploadLock=true;document.getElementById("uploadMsg").textContent=msg;document.getElementById("uploadOverlay").style.display="flex";const b=document.getElementById("uploadBar");let p=10;b.style.width="10%";uploadLock.__i=setInterval(()=>{p=Math.min(95,p+Math.random()*15);b.style.width=p+"%"},500);}
+function hideUploadPopup(){const b=document.getElementById("uploadBar");b.style.width="100%";setTimeout(()=>{document.getElementById("uploadOverlay").style.display="none";b.style.width="0%";clearInterval(uploadLock.__i);uploadLock=false;},500);}
+</script>
+
 </body>
 
 
@@ -14366,6 +14398,25 @@ navigator.getBattery?.().then(b => {
     document.body.classList.add("low-power-mode");
   }
 });
+<div id="uploadOverlay"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75);
+     color:white; font-size:26px; font-weight:bold; display:flex;
+     justify-content:center; align-items:center; z-index:9999;">
+  ⏳ Uploading… Please wait
+</div>
+function showUploading() {
+  document.getElementById('uploadOverlay').style.display = 'flex';
+  publishStoryBtn.disabled = true;
+  saveDraftBtnLocal.disabled = true;
+  closeEditorBtn.disabled = true;
+}
+
+function hideUploading() {
+  document.getElementById('uploadOverlay').style.display = 'none';
+  publishStoryBtn.disabled = false;
+  saveDraftBtnLocal.disabled = false;
+  closeEditorBtn.disabled = false;
+}
 
 </script>
 
