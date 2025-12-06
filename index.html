@@ -849,6 +849,7 @@ onValue(ref(db, 'stories'), snap => {
 
 
 onValue(ref(db, 'serials'), snap => {
+  window.__firebaseSerialsLoaded = true;
   if (snap.exists()) {
     const obj = snap.val();
     window.serialsData = Object.values(obj);
@@ -10747,6 +10748,222 @@ let uploadLock=false;
 function showUploadPopup(msg="Uploading…"){uploadLock=true;document.getElementById("uploadMsg").textContent=msg;document.getElementById("uploadOverlay").style.display="flex";const b=document.getElementById("uploadBar");let p=10;b.style.width="10%";uploadLock.__i=setInterval(()=>{p=Math.min(95,p+Math.random()*15);b.style.width=p+"%"},500);}
 function hideUploadPopup(){const b=document.getElementById("uploadBar");b.style.width="100%";setTimeout(()=>{document.getElementById("uploadOverlay").style.display="none";b.style.width="0%";clearInterval(uploadLock.__i);uploadLock=false;},500);}
 </script>
+
+
+<!-- ===== GLOBAL FULL-SCREEN LOADER (INJECTED) ===== -->
+<style id="global-loader-style">
+  #globalLoader {
+    position: fixed;
+    inset: 0;
+    z-index: 200000 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.96);
+    transition: opacity 220ms ease;
+    opacity: 1;
+    font-family: Inter, system-ui, -apple-system, Arial, sans-serif;
+  }
+  #globalLoader.hidden { opacity: 0; pointer-events: none; }
+  #globalLoader .loader-card {
+    width: min(720px, 92%);
+    max-width: 720px;
+    background: linear-gradient(180deg,#fff,#fbfbff);
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(12,18,36,0.12);
+    padding: 22px;
+    text-align: center;
+  }
+  #globalLoader .loader-title { font-weight:800; margin:0 0 8px; font-size:20px; color:#0f172a; }
+  #globalLoader .loader-sub { color:#6b7280; font-size:14px; margin-bottom:14px; }
+  #globalLoader .loader-spinner {
+    width:64px; height:64px; margin:12px auto 4px; border-radius:50%;
+    border:6px solid rgba(0,0,0,0.08); border-top-color:#2563eb; animation:spin 900ms linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #globalLoader .loader-bar { height:8px; width:70%; margin:12px auto 0; background:rgba(0,0,0,0.06); border-radius:999px; overflow:hidden; }
+  #globalLoader .loader-bar .fill { width:0%; height:100%; background:linear-gradient(90deg,#4facfe,#7c3aed); transition:width 420ms linear; }
+  @media (max-width:560px){ #globalLoader .loader-card{padding:16px} .loader-title{font-size:17px} }
+</style>
+
+<div id="globalLoader" aria-hidden="true" role="status" aria-live="polite" class="hidden">
+  <div class="loader-card" id="globalLoaderCard">
+    <div class="loader-spinner" aria-hidden="true"></div>
+    <h3 class="loader-title" id="globalLoaderTitle">Loading stories &amp; series…</h3>
+    <div class="loader-sub" id="globalLoaderSub">Fetching data — please wait.</div>
+    <div class="loader-bar" aria-hidden="true"><div class="fill" id="globalLoaderFill"></div></div>
+  </div>
+</div>
+
+<script id="global-loader-script">
+(function(){
+  if(window.__globalLoaderInjected) return;
+  window.__globalLoaderInjected = true;
+
+  const loader = document.getElementById('globalLoader');
+  const title = document.getElementById('globalLoaderTitle');
+  const sub = document.getElementById('globalLoaderSub');
+  const fill = document.getElementById('globalLoaderFill');
+
+  function showGlobalLoader(opts){
+    opts = opts || {};
+    title.textContent = opts.title || 'Loading stories & series…';
+    sub.textContent = opts.sub || 'Fetching data — please wait.';
+    if(typeof opts.progress === 'number'){
+      const v = Math.max(0, Math.min(100, opts.progress));
+      fill.style.width = v + '%';
+    } else {
+      fill.style.width = '28%';
+      // animate subtle progress
+      let cur = 28;
+      if(loader._int) clearInterval(loader._int);
+      loader._int = setInterval(()=>{
+        cur += Math.max(0.6, Math.random()*4);
+        if(cur >= 92) cur = 28;
+        fill.style.width = Math.round(cur) + '%';
+      }, 420);
+    }
+    loader.classList.remove('hidden');
+    loader.setAttribute('aria-hidden','false');
+    // ensure pages that normally look blank are hidden behind loader
+    document.body.style.cursor = 'wait';
+  }
+
+  function hideGlobalLoader(){
+    if(loader._int) { clearInterval(loader._int); loader._int = null; }
+    loader.classList.add('hidden');
+    loader.setAttribute('aria-hidden','true');
+    fill.style.width = '100%';
+    setTimeout(()=>{ fill.style.width = '0%'; document.body.style.cursor = ''; }, 220);
+  }
+
+  window.showGlobalLoader = showGlobalLoader;
+  window.hideGlobalLoader = hideGlobalLoader;
+
+  // Make window.storiesData & window.serialsData observable by defining properties
+  try {
+    const defineWatch = (name, onSet)=>{
+      let val = window[name] !== undefined ? window[name] : null;
+      Object.defineProperty(window, name, {
+        configurable: true,
+        enumerable: true,
+        get(){ return val; },
+        set(v){
+          val = v;
+          try { onSet(v); } catch(e){ console.warn(name+' watcher error',e); }
+          return val;
+        }
+      });
+    };
+
+    defineWatch('storiesData', function(v){
+      // When storiesData becomes available, render if function exists and hide loader
+      if(Array.isArray(v) && v.length && window.__firebaseSerialsLoaded){
+        try { if(typeof renderStoriesList === 'function') renderStoriesList(v); } catch(e){ console.warn('renderStoriesList error',e); }
+        // if browse stories is visible, hide loader after a short tick to allow render
+        const categoriesVisible = !document.getElementById('categoriesPage')?.classList.contains('hidden');
+        if(categoriesVisible) setTimeout(()=> hideGlobalLoader(), 250);
+      }
+    });
+
+    defineWatch('serialsData', function(v){
+      if(Array.isArray(v) && v.length && window.__firebaseSerialsLoaded){
+        try { if(typeof renderSerialsList === 'function') renderSerialsList(v); } catch(e){ console.warn('renderSerialsList error',e); }
+        const serialsVisible = !document.getElementById('serialCategoriesPage')?.classList.contains('hidden')
+                          || !document.getElementById('cleanSerialsPage')?.classList.contains('hidden');
+        if(serialsVisible) setTimeout(()=> hideGlobalLoader(), 250);
+      }
+    });
+  }catch(e){ console.warn('watcher setup failed', e); }
+
+  // Wrap existing renderers to ensure loader hides after render completes
+  try {
+    if(typeof renderStoriesList === 'function'){
+      const orig = renderStoriesList;
+      window.renderStoriesList = function(stories){
+        try{ orig.call(this, stories); }catch(e){ console.warn('renderStoriesList failed',e); }
+        // small delay to ensure DOM inserted
+        setTimeout(()=>{ if(!document.getElementById('storiesCards') || document.getElementById('storiesCards').children.length) hideGlobalLoader(); }, 160);
+      };
+    }
+  }catch(e){}
+
+  try {
+    if(typeof renderSerialsList === 'function'){
+      const origS = renderSerialsList;
+      window.renderSerialsList = function(serials){
+        try{ origS.call(this, serials); }catch(e){ console.warn('renderSerialsList failed',e); }
+        setTimeout(()=>{ if(!document.getElementById('serialsCards') || document.getElementById('serialsCards').children.length) hideGlobalLoader(); }, 160);
+      };
+    }
+  }catch(e){}
+
+  // Ensure clicking the browse buttons shows loader immediately and then triggers original behavior
+  document.addEventListener('click', function(e){
+    const el = e.target;
+    if(!el) return;
+    if(el.id === 'browseStoriesBtn' || el.closest && el.closest('#browseStoriesBtn')){
+      try{
+        showGlobalLoader({ title: 'Loading Stories…', sub: 'Please wait — loading stories.' });
+        // Allow other handlers to run (they fetch data). We'll auto-hide when render runs.
+      }catch(e){}
+    }
+    if(el.id === 'browseSerialsBtn' || el.closest && el.closest('#browseSerialsBtn')){
+      try{
+        showGlobalLoader({ title: 'Loading Series…', sub: 'Please wait — loading series.' });
+      }catch(e){}
+    }
+  }, true);
+
+  // If user refreshes while on browse pages, ensure loader is visible until data renders
+  document.addEventListener('DOMContentLoaded', function(){
+    // If any of the browse pages are visible on load, show loader until data present
+    const showOnLoad = !document.getElementById('categoriesPage')?.classList.contains('hidden') ||
+                       !document.getElementById('serialCategoriesPage')?.classList.contains('hidden') ||
+                       !document.getElementById('cleanSerialsPage')?.classList.contains('hidden');
+
+    if(showOnLoad){
+      showGlobalLoader({ title: 'Restoring your view…', sub: 'Loading stories & series…' });
+      // hide after a maximum timeout to avoid forever-loader
+      setTimeout(()=>{ if(loader && !loader.classList.contains('hidden')) hideGlobalLoader(); }, 8000);
+    }
+
+    // Also if saved data already exists, try to render immediately and hide loader
+    try{
+      if(window.storiesData && window.storiesData.length && !document.getElementById('storiesCards')?.children.length){
+        renderStoriesList(window.storiesData);
+        hideGlobalLoader();
+      }
+      if(window.serialsData && window.serialsData.length && !document.getElementById('serialsCards')?.children.length){
+        renderSerialsList(window.serialsData);
+        hideGlobalLoader();
+      }
+    }catch(e){}
+  });
+
+  // Safety: if loader remains visible too long, provide user feedback
+  setInterval(()=>{
+    try {
+      const visible = !!(loader && !loader.classList.contains('hidden'));
+      if(visible){
+        const secs = Math.round((performance.now() - (loader._shownAt||performance.now()))/1000);
+        if(!loader._shownAt) loader._shownAt = performance.now();
+        if(secs > 12){
+          title.textContent = 'Still loading — using saved data';
+          sub.textContent = 'We are falling back to offline data to keep things responsive.';
+          // attempt to render offline caches
+          try { renderStoriesList(window.storiesData || []); renderSerialsList(window.serialsData || []); } catch(e){}
+          setTimeout(()=> hideGlobalLoader(), 800);
+        }
+      } else {
+        loader._shownAt = null;
+      }
+    }catch(e){}
+  }, 3000);
+
+})();
+</script>
+<!-- ===== END GLOBAL LOADER INJECTION ===== -->
 
 </body>
 
