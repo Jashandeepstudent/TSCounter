@@ -1824,7 +1824,7 @@ openConverterBtn.addEventListener("click", () => {
 
    <!-- Story Form -->
 <div id="storyFormPage" class="form-container hidden">
-  <h2>Create Story / Series</h2>
+  <h2>Create Story</h2>
 
   <label>Title</label>
   <input type="text" id="storyTitle" placeholder="Enter your story title">
@@ -10080,38 +10080,7 @@ function closeModal() {
 <!-- ===== end snippet ===== -->
 
 
-<!-- Added Firebase save for writerName and publishDate -->
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  const btn = document.getElementById('startCreatingBtn');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    try {
-      const title = document.getElementById('storyTitle')?.value?.trim() || '';
-      if (!title) return;
-      const desc = document.getElementById('storyDesc')?.value || '';
-      const genre = document.getElementById('storyGenre')?.value || '';
-      const writerName = document.getElementById('writerNameInput')?.value?.trim() || 'Unknown';
-      const publishDate = document.getElementById('publishDateInput')?.value || new Date().toISOString().split('T')[0];
-      const cover = window._currentStoryCover || '';
-      const storyData = {
-        title, description: desc, genre, cover,
-        writerName, publishDate,
-        updatedAt: new Date().toISOString()
-      };
-      if (window._firebase && window._firebase.set && window._firebase.db) {
-        const key = encodeURIComponent(title);
-        window._firebase.set(window._firebase.ref(window._firebase.db, 'stories/' + key), storyData)
-          .then(()=>console.log('✅ Story saved with writer info:', title))
-          .catch(e=>console.error('❌ Save failed', e));
-      } else {
-        console.warn('Firebase helpers missing');
-      }
-    } catch(e){ console.error('Error saving writer info:', e); }
-  });
-});
-</script>
-<!-- End Firebase save patch -->
+
 
 
 <!-- START: REGISTER + READER PROFILE UI and SCRIPT -->
@@ -11810,38 +11779,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </style>
 
 
-<!-- Added Firebase save for writerName and publishDate -->
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  const btn = document.getElementById('startCreatingBtn');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    try {
-      const title = document.getElementById('storyTitle')?.value?.trim() || '';
-      if (!title) return;
-      const desc = document.getElementById('storyDesc')?.value || '';
-      const genre = document.getElementById('storyGenre')?.value || '';
-      const writerName = document.getElementById('writerNameInput')?.value?.trim() || 'Unknown';
-      const publishDate = document.getElementById('publishDateInput')?.value || new Date().toISOString().split('T')[0];
-      const cover = window._currentStoryCover || '';
-      const storyData = {
-        title, description: desc, genre, cover,
-        writerName, publishDate,
-        updatedAt: new Date().toISOString()
-      };
-      if (window._firebase && window._firebase.set && window._firebase.db) {
-        const key = encodeURIComponent(title);
-        window._firebase.set(window._firebase.ref(window._firebase.db, 'stories/' + key), storyData)
-          .then(()=>console.log('✅ Story saved with writer info:', title))
-          .catch(e=>console.error('❌ Save failed', e));
-      } else {
-        console.warn('Firebase helpers missing');
-      }
-    } catch(e){ console.error('Error saving writer info:', e); }
-  });
-});
-</script>
-<!-- End Firebase save patch -->
+
 
 <script>
     // 🕒 Wait until meurbalSplash is hidden/removed
@@ -12587,37 +12525,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 <!-- Added Firebase save for writerName and publishDate -->
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  const btn = document.getElementById('startCreatingBtn');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    try {
-      const title = document.getElementById('storyTitle')?.value?.trim() || '';
-      if (!title) return;
-      const desc = document.getElementById('storyDesc')?.value || '';
-      const genre = document.getElementById('storyGenre')?.value || '';
-      const writerName = document.getElementById('writerNameInput')?.value?.trim() || 'Unknown';
-      const publishDate = document.getElementById('publishDateInput')?.value || new Date().toISOString().split('T')[0];
-      const cover = window._currentStoryCover || '';
-      const storyData = {
-        title, description: desc, genre, cover,
-        writerName, publishDate,
-        updatedAt: new Date().toISOString()
-      };
-      if (window._firebase && window._firebase.set && window._firebase.db) {
-        const key = encodeURIComponent(title);
-        window._firebase.set(window._firebase.ref(window._firebase.db, 'stories/' + key), storyData)
-          .then(()=>console.log('✅ Story saved with writer info:', title))
-          .catch(e=>console.error('❌ Save failed', e));
-      } else {
-        console.warn('Firebase helpers missing');
-      }
-    } catch(e){ console.error('Error saving writer info:', e); }
-  });
-});
-</script>
-<!-- End Firebase save patch -->
+
 
 
 <!-- 📊 Combined Analytics Feature -->
@@ -13749,37 +13657,6 @@ aiAssistantBtn.addEventListener('click',()=>{
 </style>
 
 
-<!-- Added Firebase save for writerName and publishDate -->
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  const btn = document.getElementById('startCreatingBtn');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    try {
-      const title = document.getElementById('storyTitle')?.value?.trim() || '';
-      if (!title) return;
-      const desc = document.getElementById('storyDesc')?.value || '';
-      const genre = document.getElementById('storyGenre')?.value || '';
-      const writerName = document.getElementById('writerNameInput')?.value?.trim() || 'Unknown';
-      const publishDate = document.getElementById('publishDateInput')?.value || new Date().toISOString().split('T')[0];
-      const cover = window._currentStoryCover || '';
-      const storyData = {
-        title, description: desc, genre, cover,
-        writerName, publishDate,
-        updatedAt: new Date().toISOString()
-      };
-      if (window._firebase && window._firebase.set && window._firebase.db) {
-        const key = encodeURIComponent(title);
-        window._firebase.set(window._firebase.ref(window._firebase.db, 'stories/' + key), storyData)
-          .then(()=>console.log('✅ Story saved with writer info:', title))
-          .catch(e=>console.error('❌ Save failed', e));
-      } else {
-        console.warn('Firebase helpers missing');
-      }
-    } catch(e){ console.error('Error saving writer info:', e); }
-  });
-});
-</script>
 <!-- End Firebase save patch -->
 
 
