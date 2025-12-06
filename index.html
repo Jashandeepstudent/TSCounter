@@ -665,22 +665,6 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-/* 🔥 Track total visits */
-async function trackVisit() {
-  const visitsRef = ref(db, "analytics/totalVisits");
-  const snap = await get(visitsRef);
-  let currentCount = snap.exists() ? snap.val() : 0;
-  await set(visitsRef, currentCount + 1);
-}
-trackVisit();
-
-/* 👁 Show visits live on screen (optional) */
-const visitsRef = ref(db, "analytics/totalVisits");
-onValue(visitsRef, (snapshot) => {
-  if (document.getElementById("visitCount")) {
-    document.getElementById("visitCount").innerText = snapshot.val();
-  }
-});
 
 const statusBox = document.createElement('div');
 statusBox.id = '__firebase_status_box';
@@ -14167,84 +14151,6 @@ document.addEventListener("contextmenu", e => {
   e.preventDefault();
 });
 </script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDZpUl6FzT7pRtb5QwlEZrjkE4gpjZxIY4",
-  authDomain: "meurbal-d3c72.firebaseapp.com",
-  databaseURL: "https://meurbal-d3c72-default-rtdb.firebaseio.com",
-  projectId: "meurbal-d3c72",
-  storageBucket: "meurbal-d3c72.firebasestorage.app",
-  messagingSenderId: "707190126856",
-  appId: "1:707190126856:web:128c972aef19934c81d4bd",
-  measurementId: "G-4SBPDJHJDS"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-/* 🧾 Create unique user ID (important!) */
-let uid = localStorage.getItem("mb_uid");
-if (!uid) {
-  uid = "user_" + Math.random().toString(36).substring(2);
-  localStorage.setItem("mb_uid", uid);
-}
-
-/* 🔥 Count total + daily users */
-async function trackVisit() {
-  const today = new Date().toISOString().slice(0, 10);
-  const analyticsRef = ref(db, "analytics");
-  const snap = await get(analyticsRef);
-  let data = snap.exists() ? snap.val() : {};
-
-  let total = data.totalVisits || 0;
-  let dailyUsers = data.dailyUsers || {};
-  let todayUsers = dailyUsers[today] || {};
-
-  total += 1;
-  todayUsers[uid] = true;
-
-  await update(analyticsRef, {
-    totalVisits: total,
-    dailyUsers: { ...dailyUsers, [today]: todayUsers }
-  });
-}
-trackVisit();
-
-/* ⏳ Track total minutes spent */
-let startTime = Date.now();
-window.addEventListener("beforeunload", async () => {
-  const minutes = Math.round((Date.now() - startTime) / 60000);
-  if (minutes <= 0) return;
-
-  const timeRef = ref(db, "analytics/totalMinutes");
-  const snap = await get(timeRef);
-  let prev = snap.exists() ? snap.val() : 0;
-  await set(timeRef, prev + minutes);
-});
-
-/* 👁 Live display if elements exist */
-onValue(ref(db, "analytics/totalVisits"), (s) => {
-  const el = document.getElementById("visitCount");
-  if (el) el.innerText = s.val();
-});
-
-onValue(ref(db, "analytics/totalMinutes"), (s) => {
-  const el = document.getElementById("totalMinutes");
-  if (el) el.innerText = s.val();
-});
-
-onValue(ref(db, "analytics/dailyUsers"), (s) => {
-  const el = document.getElementById("dailyActive");
-  if (!el) return;
-  const today = new Date().toISOString().slice(0, 10);
-  let users = s.val()?.[today] ? Object.keys(s.val()[today]).length : 0;
-  el.innerText = users;
-});
-</script>
-
 </body>
 
 
